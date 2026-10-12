@@ -1,0 +1,22 @@
+# NOTE: Geographic coordinates listed in this file are approximate demo data for the Dehradun PBL Project (Ambulance Management System).
+locationId,name,latitude,longitude,locationType,address
+LOC-001,Clock Tower Emergency Dispatch Post,30.3244,78.0418,EMERGENCY_SERVICE,Rajpur Road / Paltan Bazaar Chowk Dehradun
+LOC-002,ISBT Dehradun,30.2874,78.0069,TRANSPORT_HUB,Haridwar Bypass Road Transport Nagar Dehradun
+LOC-003,Dehradun Railway Station,30.3155,78.0350,TRANSPORT_HUB,Railway Colony Dehradun
+LOC-004,Jolly Grant Airport Ambulance Helipad,30.1897,78.1803,TRANSPORT_HUB,Rishikesh Road Dehradun Airport
+LOC-005,Synergy Community Hospital,30.3444,77.9995,HOSPITAL,Chakrata Road Ballupur Dehradun
+LOC-006,Combined Medical Institute Hospital,30.3776,78.0601,HOSPITAL,Anarwala Malsi Branch Dehradun
+LOC-007,Fortis Escorts Clinic,30.3872,78.1316,HOSPITAL,Sahastradhara Road Dehradun
+LOC-008,Shri Mahant Indiresh Hospital,30.2598,78.0084,HOSPITAL,Clement Town / Patel Nagar Dehradun
+LOC-009,Paltan Bazaar Emergency Post,30.3220,78.0392,EMERGENCY_SERVICE,Paltan Bazaar Road near Ghanta Ghar Dehradun
+LOC-010,Rajpur Road Emergency Unit,30.3541,78.0702,EMERGENCY_SERVICE,Rajpur Road Commercial Corridor Dehradun
+LOC-011,Doon Government Hospital,30.3235,78.0450,HOSPITAL,Court Road near Clock Tower Dehradun
+LOC-012,Max Super Speciality Hospital,30.3792,78.0831,HOSPITAL,Mussoorie Diversion Road Malsi Dehradun
+LOC-013,Parade Ground Emergency Station,30.3258,78.0465,EMERGENCY_SERVICE,Parade Ground Road near Subhash Road Dehradun
+LOC-014,Mussoorie Diversion Emergency Station,30.3698,78.0772,EMERGENCY_SERVICE,Mussoorie Diversion Pacific Mall Crossing
+LOC-015,Pacific Emergency Post,30.3602,78.0734,EMERGENCY_SERVICE,Rajpur Road near Sai Mandir Dehradun
+LOC-016,Dehradun Police Headquarters,30.3211,78.0425,EMERGENCY_SERVICE,Subhash Road Police Line Dehradun
+LOC-017,Fire Station Rajpur Road,30.3340,78.0510,EMERGENCY_SERVICE,Rajpur Road Dehradun Fire Service
+LOC-018,Apollo Clinic and Hospital,30.3412,78.0589,HOSPITAL,97 Rajpur Road Hathibarkala Salwala Dehradun
+LOC-019,City Hospital Rajpur Road,30.3478,78.0632,HOSPITAL,88 Rajpur Road Hathibarkala Dehradun
+LOC-020,Central Trauma Center,30.3240,78.0429,EMERGENCY_SERVICE,Clock Tower Complex Rajpur Road Dehradun

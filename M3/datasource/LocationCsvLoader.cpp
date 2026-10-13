@@ -6,9 +6,11 @@
 #include <algorithm>
 #include <cctype>
 
-std::vector<std::string> LocationCsvLoader::parseCsvLine(const std::string& line) {
-    std::vector<std::string> tokens;
-    std::string token;
+using namespace std;
+
+vector<string> LocationCsvLoader::parseCsvLine(const string& line) {
+    vector<string> tokens;
+    string token;
     bool inQuotes = false;
 
     for (size_t i = 0; i < line.length(); ++i) {
@@ -34,34 +36,34 @@ std::vector<std::string> LocationCsvLoader::parseCsvLine(const std::string& line
     // Trim outer whitespace for each token
     for (auto& tok : tokens) {
         // Trim leading spaces
-        tok.erase(tok.begin(), std::find_if(tok.begin(), tok.end(), [](unsigned char c) {
-            return !std::isspace(c);
+        tok.erase(tok.begin(), find_if(tok.begin(), tok.end(), [](unsigned char c) {
+            return !isspace(c);
         }));
         // Trim trailing spaces
-        tok.erase(std::find_if(tok.rbegin(), tok.rend(), [](unsigned char c) {
-            return !std::isspace(c);
+        tok.erase(find_if(tok.rbegin(), tok.rend(), [](unsigned char c) {
+            return !isspace(c);
         }).base(), tok.end());
     }
 
     return tokens;
 }
 
-std::vector<Location> LocationCsvLoader::loadFromFile(const std::string& filePath) {
-    std::ifstream file(filePath);
+vector<Location> LocationCsvLoader::loadFromFile(const string& filePath) {
+    ifstream file(filePath);
     if (!file.is_open()) {
-        std::cerr << "[LocationCsvLoader Error] Unable to open CSV file at path: "
-                  << filePath << std::endl;
+        cerr << "[LocationCsvLoader Error] Unable to open CSV file at path: "
+             << filePath << endl;
         return {};
     }
     return loadFromStream(file);
 }
 
-std::vector<Location> LocationCsvLoader::loadFromStream(std::istream& input) {
-    std::vector<Location> locations;
-    std::string line;
+vector<Location> LocationCsvLoader::loadFromStream(istream& input) {
+    vector<Location> locations;
+    string line;
     size_t lineNumber = 0;
 
-    while (std::getline(input, line)) {
+    while (getline(input, line)) {
         lineNumber++;
 
         // Remove carriage return '\r' if line was saved with Windows CRLF
@@ -70,9 +72,9 @@ std::vector<Location> LocationCsvLoader::loadFromStream(std::istream& input) {
         }
 
         // Trim whitespace to check if empty
-        std::string trimmed = line;
-        trimmed.erase(trimmed.begin(), std::find_if(trimmed.begin(), trimmed.end(), [](unsigned char c) {
-            return !std::isspace(c);
+        string trimmed = line;
+        trimmed.erase(trimmed.begin(), find_if(trimmed.begin(), trimmed.end(), [](unsigned char c) {
+            return !isspace(c);
         }));
 
         if (trimmed.empty()) {
@@ -84,13 +86,13 @@ std::vector<Location> LocationCsvLoader::loadFromStream(std::istream& input) {
             continue;
         }
 
-        std::vector<std::string> fields = parseCsvLine(line);
+        vector<string> fields = parseCsvLine(line);
 
         // Check if this is the header row
         if (!fields.empty()) {
-            std::string firstColLower = fields[0];
-            std::transform(firstColLower.begin(), firstColLower.end(), firstColLower.begin(),
-                           [](unsigned char c) { return std::tolower(c); });
+            string firstColLower = fields[0];
+            transform(firstColLower.begin(), firstColLower.end(), firstColLower.begin(),
+                      [](unsigned char c) { return tolower(c); });
             if (firstColLower == "locationid" || firstColLower == "id") {
                 continue; // Skip header row
             }
@@ -98,24 +100,24 @@ std::vector<Location> LocationCsvLoader::loadFromStream(std::istream& input) {
 
         // Validate minimum column count: locationId, name, latitude, longitude, locationType
         if (fields.size() < 5) {
-            std::cerr << "[LocationCsvLoader Warning] Line " << lineNumber
+            cerr << "[LocationCsvLoader Warning] Line " << lineNumber
                       << ": Insufficient columns (expected at least 5, got "
                       << fields.size() << "). Skipping row: '" << line << "'\n";
             continue;
         }
 
         try {
-            const std::string& id = fields[0];
-            const std::string& name = fields[1];
+            const string& id = fields[0];
+            const string& name = fields[1];
             
             // Parse coordinates
             double lat = 0.0;
             double lon = 0.0;
             try {
-                lat = std::stod(fields[2]);
-                lon = std::stod(fields[3]);
-            } catch (const std::exception& e) {
-                std::cerr << "[LocationCsvLoader Warning] Line " << lineNumber
+                lat = stod(fields[2]);
+                lon = stod(fields[3]);
+            } catch (const exception& e) {
+                cerr << "[LocationCsvLoader Warning] Line " << lineNumber
                           << ": Failed to parse coordinates ('" << fields[2] << "', '"
                           << fields[3] << "') as numbers: " << e.what()
                           << ". Skipping row.\n";
@@ -126,18 +128,18 @@ std::vector<Location> LocationCsvLoader::loadFromStream(std::istream& input) {
             LocationType type = Location::stringToLocationType(fields[4]);
 
             // Optional address column
-            std::string address = (fields.size() >= 6) ? fields[5] : "";
+            string address = (fields.size() >= 6) ? fields[5] : "";
 
             // Construct and validate Location object
             Location loc(id, name, lat, lon, type, address);
             locations.push_back(loc);
 
-        } catch (const std::invalid_argument& ex) {
-            std::cerr << "[LocationCsvLoader Warning] Line " << lineNumber
+        } catch (const invalid_argument& ex) {
+            cerr << "[LocationCsvLoader Warning] Line " << lineNumber
                       << ": Validation failure: " << ex.what()
                       << ". Skipping row.\n";
-        } catch (const std::exception& ex) {
-            std::cerr << "[LocationCsvLoader Warning] Line " << lineNumber
+        } catch (const exception& ex) {
+            cerr << "[LocationCsvLoader Warning] Line " << lineNumber
                       << ": Unexpected error: " << ex.what()
                       << ". Skipping row.\n";
         }

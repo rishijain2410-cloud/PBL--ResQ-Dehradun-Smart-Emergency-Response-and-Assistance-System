@@ -5,7 +5,9 @@
 #include <sstream>
 #include <algorithm>
 
-bool Location::isValidLocationId(const std::string& id) {
+using namespace std;
+
+bool Location::isValidLocationId(const string& id) {
     // Expected format: "LOC-<digits>" with at least one digit (minimum length 5: "LOC-1")
     if (id.length() < 5) {
         return false;
@@ -14,7 +16,7 @@ bool Location::isValidLocationId(const std::string& id) {
         return false;
     }
     for (size_t i = 4; i < id.length(); ++i) {
-        if (!std::isdigit(static_cast<unsigned char>(id[i]))) {
+        if (!isdigit(static_cast<unsigned char>(id[i]))) {
             return false;
         }
     }
@@ -29,12 +31,12 @@ Location::Location()
       locationType(LocationType::LANDMARK),
       address("") {}
 
-Location::Location(const std::string& locationId,
-                   const std::string& name,
+Location::Location(const string& locationId,
+                   const string& name,
                    double latitude,
                    double longitude,
                    LocationType locationType,
-                   const std::string& address)
+                   const string& address)
     : locationId(locationId),
       name(name),
       latitude(latitude),
@@ -44,7 +46,7 @@ Location::Location(const std::string& locationId,
 
     // 1. Validate ID format
     if (locationId.empty() || !isValidLocationId(locationId)) {
-        throw std::invalid_argument(
+        throw invalid_argument(
             "Validation Error: locationId '" + locationId +
             "' is invalid. ID must follow the pattern 'LOC-<digits>' (e.g., 'LOC-001')."
         );
@@ -52,31 +54,31 @@ Location::Location(const std::string& locationId,
 
     // 2. Validate Name
     if (name.empty()) {
-        throw std::invalid_argument("Validation Error: Location name cannot be empty.");
+        throw invalid_argument("Validation Error: Location name cannot be empty.");
     }
 
     // 3. Validate Latitude [-90, 90]
     if (latitude < -90.0 || latitude > 90.0) {
-        std::ostringstream ss;
+        ostringstream ss;
         ss << "Validation Error: Latitude " << latitude
            << " is out of bounds. Must be in range [-90.0, 90.0].";
-        throw std::invalid_argument(ss.str());
+        throw invalid_argument(ss.str());
     }
 
     // 4. Validate Longitude [-180, 180]
     if (longitude < -180.0 || longitude > 180.0) {
-        std::ostringstream ss;
+        ostringstream ss;
         ss << "Validation Error: Longitude " << longitude
            << " is out of bounds. Must be in range [-180.0, 180.0].";
-        throw std::invalid_argument(ss.str());
+        throw invalid_argument(ss.str());
     }
 }
 
-const std::string& Location::getLocationId() const {
+const string& Location::getLocationId() const {
     return locationId;
 }
 
-const std::string& Location::getName() const {
+const string& Location::getName() const {
     return name;
 }
 
@@ -92,23 +94,23 @@ LocationType Location::getLocationType() const {
     return locationType;
 }
 
-const std::string& Location::getAddress() const {
+const string& Location::getAddress() const {
     return address;
 }
 
-std::string Location::toString() const {
-    std::ostringstream ss;
+string Location::toString() const {
+    ostringstream ss;
     ss << "[" << locationId << "] " << name
        << " (" << locationTypeToString(locationType) << ") "
-       << "at (" << std::fixed << std::setprecision(4) << latitude << ", "
-       << std::fixed << std::setprecision(4) << longitude << ")";
+    << "at (" << fixed << setprecision(4) << latitude << ", "
+    << fixed << setprecision(4) << longitude << ")";
     if (!address.empty()) {
         ss << " - " << address;
     }
     return ss.str();
 }
 
-std::string Location::locationTypeToString(LocationType type) {
+string Location::locationTypeToString(LocationType type) {
     switch (type) {
         case LocationType::LANDMARK:          return "LANDMARK";
         case LocationType::HOSPITAL:          return "HOSPITAL";
@@ -121,22 +123,22 @@ std::string Location::locationTypeToString(LocationType type) {
     }
 }
 
-LocationType Location::stringToLocationType(const std::string& typeStr) {
+LocationType Location::stringToLocationType(const string& typeStr) {
     // Normalization: trim whitespace and uppercase
-    std::string s = typeStr;
+    string s = typeStr;
     // Trim leading whitespace
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
-        return !std::isspace(ch);
+    s.erase(s.begin(), find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !isspace(ch);
     }));
     // Trim trailing whitespace
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
-        return !std::isspace(ch);
+    s.erase(find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !isspace(ch);
     }).base(), s.end());
 
-    std::string upperStr;
+    string upperStr;
     upperStr.reserve(s.size());
     for (char c : s) {
-        upperStr.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(c))));
+        upperStr.push_back(static_cast<char>(toupper(static_cast<unsigned char>(c))));
     }
 
     if (upperStr == "LANDMARK")          return LocationType::LANDMARK;
@@ -147,7 +149,7 @@ LocationType Location::stringToLocationType(const std::string& typeStr) {
     if (upperStr == "RESTAURANT")        return LocationType::RESTAURANT;
     if (upperStr == "TRANSPORT_HUB")     return LocationType::TRANSPORT_HUB;
 
-    throw std::invalid_argument(
+    throw invalid_argument(
         "Validation Error: Unknown LocationType string '" + typeStr +
         "'. Supported types: LANDMARK, HOSPITAL, EMERGENCY_SERVICE, TOURIST_PLACE, HOTEL, RESTAURANT, TRANSPORT_HUB."
     );

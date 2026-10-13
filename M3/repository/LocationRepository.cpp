@@ -1,21 +1,23 @@
 #include "repository/LocationRepository.h"
 
-std::optional<Location> InMemoryLocationRepository::findById(const std::string& id) const {
+using namespace std;
+
+optional<Location> InMemoryLocationRepository::findById(const string& id) const {
     // Average O(1) hash map lookup
     auto it = itemMapById.find(id);
     if (it != itemMapById.end()) {
         return it->second;
     }
-    return std::nullopt;
+    return nullopt;
 }
 
-std::vector<Location> InMemoryLocationRepository::findAll() const {
+vector<Location> InMemoryLocationRepository::findAll() const {
     // Returns full list in insertion order
     return itemList;
 }
 
-std::vector<Location> InMemoryLocationRepository::findByType(LocationType type) const {
-    std::vector<Location> filtered;
+vector<Location> InMemoryLocationRepository::findByType(LocationType type) const {
+    vector<Location> filtered;
     filtered.reserve(itemList.size() / 4); // Heuristic initial capacity
     for (const auto& location : itemList) {
         if (location.getLocationType() == type) {
@@ -26,7 +28,7 @@ std::vector<Location> InMemoryLocationRepository::findByType(LocationType type) 
 }
 
 bool InMemoryLocationRepository::save(const Location& location) {
-    const std::string& id = location.getLocationId();
+    const string& id = location.getLocationId();
 
     // Check duplicate using HashSet in average O(1)
     if (uniqueIdSet.find(id) != uniqueIdSet.end()) {

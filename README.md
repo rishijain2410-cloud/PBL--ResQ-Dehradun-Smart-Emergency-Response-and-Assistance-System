@@ -102,3 +102,98 @@ loading, empty-result, and error states.
 Intended outcome: A unified interface for accessing the capabilities
 of the integrated ResQ system.
 
+High-Level Workflow
+
+A user reports or initiates an emergency.
+
+M1 --- Emergency Dispatch records the request and applies the
+defined prioritization logic.
+
+M2 --- Healthcare Discovery supplies relevant hospital and
+medical-facility information.
+
+M3 --- Navigation and Routing helps identify a destination and
+route using available data.
+
+M4 --- Frontend Dashboard and Integration presents available
+information through a common interface.
+
+The modules exchange information through their defined interfaces as
+integration progresses.
+
+The actual workflow depends on the features implemented and verified in
+each module.
+
+Proposed Architecture
+
+                   ResQ Dehradun
+                         |
+             Frontend / Dashboard (M4)
+                         |
+                API / Integration Layer
+                         |
+       +-----------------+-----------------+
+       |                 |                 |
+       v                 v                 v
+ M1: Emergency      M2: Healthcare    M3: Navigation
+    Dispatch          Discovery         and Routing
+       |                 |                 |
+ Request handling   Hospital data     Locations, routes,
+ and prioritization and search        and pathfinding
+
+This is the intended logical architecture; it does not mean every
+connection or API is already implemented.
+
+Technology Stack
+
+The exact stack may evolve as the modules are integrated.
+
+Area                                Technology / Approach
+
+Core implementation                 C++
+
+C++ language standard               C++17 where configured
+
+Data structures and algorithms      Hash maps, priority queues, graphs,
+searching, sorting, and pathfinding
+as appropriate
+
+Healthcare persistence              SQLite planned for persistent
+hospital storage
+
+Inter-module communication          REST-style APIs planned
+
+Frontend                            Dashboard/interface module;
+document the chosen framework as
+confirmed
+
+Build                               Makefile planned for reproducible
+C++ builds
+
+Version control                     Git and GitHub
+
+Only describe a technology as implemented after it has been configured
+and verified in the repository.
+
+Project Structure
+
+The following is an illustrative structure. Adjust it to match the
+actual repository as the project evolves.
+
+ResQ-Dehradun/
+├── M1/                 # Emergency Dispatch
+├── M2/                 # Healthcare Discovery and Assistance
+│   ├── model/          # Hospital-related data models
+│   ├── repository/     # Hospital data access
+│   ├── service/        # Search and business logic
+│   ├── dto/            # Request/response data structures
+│   └── examples/       # Demonstration code
+├── M3/                 # Navigation and Routing
+├── M4/                 # Frontend Dashboard and Integration
+├── tests/              # Tests, if maintained at repository level
+└── README.md
+
+Development Status
+
+ResQ Dehradun is under development. Update this table as each module is
+reviewed and tested.

@@ -108,5 +108,13 @@
             Academic project prototype · Not connected to live emergency services
         </p>
     </footer>
+        <script>
+        function showNotice(moduleName) {
+            const notice = document.getElementById("notice");
+            notice.textContent =
+                moduleName + " interface selected. Module integration is pending.";
+            notice.hidden = false;
+        }
+    </script>
 </body>
 </html>

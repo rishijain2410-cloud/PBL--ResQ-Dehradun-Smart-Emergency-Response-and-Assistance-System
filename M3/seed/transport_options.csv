@@ -1,0 +1,5 @@
+optionId,mode,displayName,averageSpeedKmph,costPerKm,baseFare,maxPracticalDistanceKm
+TRN-001,WALKING,Walking,5.0,0.0,0.0,8.0
+TRN-002,TWO_WHEELER,Two-Wheeler,30.0,3.5,10.0,100.0
+TRN-003,CAR,Car / Cab,32.5,12.0,50.0,300.0
+TRN-004,PUBLIC_TRANSPORT,Public Transport,22.0,2.5,15.0,50.0

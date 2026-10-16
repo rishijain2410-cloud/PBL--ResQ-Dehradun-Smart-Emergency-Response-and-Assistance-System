@@ -886,12 +886,627 @@ function routeToHospital(locStr) {
   }
 }
 
+// 10. NAVIGATION & ROUTES (M3 MODULE & DIJKSTRA)
+function initNavigationModule() {
+  const startSelect = document.getElementById('routeStartSelect');
+  const destSelect = document.getElementById('routeDestSelect');
+  const nearbyLocSelect = document.getElementById('nearbyLocationSelect');
 
-// Initialize modules
-document.addEventListener('DOMContentLoaded', () => {
-  initStorage();
-  initNavigation();
-  renderDashboard();
-  renderHospitals();
-  renderAmbulances();
-});
+  const locOptions = appState.locations.map(l => `<option value="${l.id}">${l.id} — ${l.name} (${l.category})</option>`).join('');
+
+  if (startSelect) startSelect.innerHTML = locOptions;
+  if (destSelect) destSelect.innerHTML = locOptions;
+  if (nearbyLocSelect) nearbyLocSelect.innerHTML = locOptions;
+
+  // Default preset route LOC-001 to LOC-011
+  if (startSelect) startSelect.value = "LOC-001";
+  if (destSelect) destSelect.value = "LOC-011";
+
+  fillNearbyCoords();
+  renderNetworkSchematic();
+  updateEtaCalculation();
+}
+
+function loadPresetRoute(startId, destId) {
+  document.getElementById('routeStartSelect').value = startId;
+  document.getElementById('routeDestSelect').value = destId;
+  calculateRoute();
+}
+
+function swapRouteLocations() {
+  const startSel = document.getElementById('routeStartSelect');
+  const destSel = document.getElementById('routeDestSelect');
+  const temp = startSel.value;
+  startSel.value = destSel.value;
+  destSel.value = temp;
+  calculateRoute();
+}
+
+// JavaScript Dijkstra Implementation for M3 Demonstration
+function runDijkstra(startId, destId) {
+  const adj = {};
+  appState.locations.forEach(l => { adj[l.id] = []; });
+  appState.edges.forEach(e => {
+    if (!adj[e.from]) adj[e.from] = [];
+    if (!adj[e.to]) adj[e.to] = [];
+    adj[e.from].push({ node: e.to, weight: e.distance, road: e.road });
+    adj[e.to].push({ node: e.from, weight: e.distance, road: e.road }); // undirected road network
+  });
+
+  const distances = {};
+  const previous = {};
+  const pq = new Set();
+
+  appState.locations.forEach(l => {
+    distances[l.id] = Infinity;
+    previous[l.id] = null;
+    pq.add(l.id);
+  });
+
+  distances[startId] = 0;
+
+  while (pq.size > 0) {
+    // Find node with min distance in pq
+    let u = null;
+    let minDist = Infinity;
+    pq.forEach(node => {
+      if (distances[node] < minDist) {
+        minDist = distances[node];
+        u = node;
+      }
+    });
+
+    if (u === null || minDist === Infinity) break;
+    if (u === destId) break; // reached destination
+
+    pq.delete(u);
+
+    if (adj[u]) {
+      adj[u].forEach(neighbor => {
+        if (pq.has(neighbor.node)) {
+          const alt = distances[u] + neighbor.weight;
+          if (alt < distances[u + ''] || alt < distances[neighbor.node]) {
+            distances[neighbor.node] = alt;
+            previous[neighbor.node] = { from: u, road: neighbor.road, distance: neighbor.weight };
+          }
+        }
+      });
+    }
+  }
+
+  // Reconstruct path
+  const path = [];
+  const segments = [];
+  let curr = destId;
+
+  if (previous[curr] !== null || startId === destId) {
+    while (curr !== null) {
+      path.unshift(curr);
+      if (previous[curr]) {
+        segments.unshift({
+          from: previous[curr].from,
+          to: curr,
+          road: previous[curr].road,
+          distance: previous[curr].distance
+        });
+        curr = previous[curr].from;
+      } else {
+        break;
+      }
+    }
+  }
+
+  return {
+    distance: distances[destId],
+    pathNodes: path,
+    segments: segments
+  };
+}
+
+function calculateRoute() {
+  const startId = document.getElementById('routeStartSelect').value;
+  const destId = document.getElementById('routeDestSelect').value;
+
+  if (startId === destId) {
+    showToast("Start and destination locations cannot be identical.", "warning");
+    return;
+  }
+
+  const result = runDijkstra(startId, destId);
+
+  if (result.distance === Infinity || result.pathNodes.length === 0) {
+    showToast("No connecting road route found between selected locations in demo graph.", "error");
+    return;
+  }
+
+  appState.activeRoute = result;
+
+  // Display result container
+  const container = document.getElementById('routeResultContainer');
+  container.classList.remove('hidden');
+
+  document.getElementById('routeDistVal').textContent = `${result.distance.toFixed(2)} km`;
+
+  const locNames = result.pathNodes.map(id => {
+    const l = appState.locations.find(item => item.id === id);
+    return l ? l.name : id;
+  });
+  document.getElementById('routePathVal').textContent = locNames.join(' → ');
+
+  // Render segments table
+  const segBody = document.getElementById('routeSegmentsBody');
+  segBody.innerHTML = result.segments.map(seg => {
+    const fObj = appState.locations.find(l => l.id === seg.from);
+    const tObj = appState.locations.find(l => l.id === seg.to);
+    return `
+      <tr>
+        <td>${fObj ? fObj.name : seg.from}</td>
+        <td>${tObj ? tObj.name : seg.to}</td>
+        <td>${seg.road}</td>
+        <td>${seg.distance.toFixed(2)} km</td>
+      </tr>
+    `;
+  }).join('');
+
+  updateEtaCalculation();
+  renderNetworkSchematic();
+  showToast(`Shortest route calculated: ${result.distance.toFixed(2)} km.`, "success");
+}
+
+function clearRoute() {
+  appState.activeRoute = null;
+  document.getElementById('routeResultContainer').classList.add('hidden');
+  renderNetworkSchematic();
+  updateEtaCalculation();
+  showToast("Route cleared.", "success");
+}
+
+// SVG Road Network Schematic Rendering
+function renderNetworkSchematic() {
+  const svgEdges = document.getElementById('svgEdges');
+  const svgNodes = document.getElementById('svgNodes');
+  if (!svgEdges || !svgNodes) return;
+
+  // Normalize lat/lng to 600x450 SVG coordinates
+  // Dehradun bounding box approx: lat 30.25 to 30.36, lng 77.95 to 78.11
+  const minLat = 30.25, maxLat = 30.36;
+  const minLng = 77.95, maxLng = 78.11;
+
+  function scaleX(lng) {
+    return ((lng - minLng) / (maxLng - minLng)) * 520 + 40;
+  }
+  function scaleY(lat) {
+    // Invert lat for SVG Y axis
+    return (1 - (lat - minLat) / (maxLat - minLat)) * 370 + 40;
+  }
+
+  // Draw Edges
+  let edgesHtml = "";
+  appState.edges.forEach(e => {
+    const fLoc = appState.locations.find(l => l.id === e.from);
+    const tLoc = appState.locations.find(l => l.id === e.to);
+    if (fLoc && tLoc) {
+      const x1 = scaleX(fLoc.lng), y1 = scaleY(fLoc.lat);
+      const x2 = scaleX(tLoc.lng), y2 = scaleY(tLoc.lat);
+
+      // Check if edge is in active route
+      let isActive = false;
+      if (appState.activeRoute && appState.activeRoute.segments) {
+        isActive = appState.activeRoute.segments.some(seg => (seg.from === e.from && seg.to === e.to) || (seg.from === e.to && seg.to === e.from));
+      }
+
+      const strokeColor = isActive ? "#E63946" : "#2878D0";
+      const strokeWidth = isActive ? "3.5" : "1.5";
+      const opacity = isActive ? "1" : "0.4";
+
+      edgesHtml += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-opacity="${opacity}" />`;
+    }
+  });
+  svgEdges.innerHTML = edgesHtml;
+
+  // Draw Nodes
+  let nodesHtml = "";
+  appState.locations.forEach(l => {
+    const cx = scaleX(l.lng);
+    const cy = scaleY(l.lat);
+
+    let isStartOrDest = false;
+    const startId = document.getElementById('routeStartSelect')?.value;
+    const destId = document.getElementById('routeDestSelect')?.value;
+    if (l.id === startId || l.id === destId) isStartOrDest = true;
+
+    const fill = isStartOrDest ? "url(#activeNodeGrad)" : "url(#nodeGrad)";
+    const r = isStartOrDest ? "7" : "5";
+
+    nodesHtml += `
+      <g class="svg-node" onclick="app.selectNodeFromSchematic('${l.id}')" style="cursor: pointer;">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="#FFFFFF" stroke-width="1.5"/>
+        <text x="${cx + 10}" y="${cy + 4}" fill="#94A3B8" font-size="10" font-family="Plus Jakarta Sans">${l.id}</text>
+      </g>
+    `;
+  });
+  svgNodes.innerHTML = nodesHtml;
+}
+
+function selectNodeFromSchematic(locId) {
+  const startSelect = document.getElementById('routeStartSelect');
+  const destSelect = document.getElementById('routeDestSelect');
+  if (startSelect.value === locId) return;
+  if (destSelect.value === locId) {
+    calculateRoute();
+    return;
+  }
+  startSelect.value = destSelect.value;
+  destSelect.value = locId;
+  calculateRoute();
+}
+
+// 11. NEARBY SERVICES & HAVERSINE CALCULATION
+function fillNearbyCoords() {
+  const locId = document.getElementById('nearbyLocationSelect').value;
+  const loc = appState.locations.find(l => l.id === locId);
+  if (loc) {
+    document.getElementById('nearbyLat').value = loc.lat;
+    document.getElementById('nearbyLng').value = loc.lng;
+  }
+}
+
+// Haversine Distance Formula in JavaScript
+function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function searchNearbyServices() {
+  const lat = parseFloat(document.getElementById('nearbyLat').value);
+  const lng = parseFloat(document.getElementById('nearbyLng').value);
+  const radius = parseFloat(document.getElementById('nearbyRadius').value);
+  const category = document.getElementById('nearbyCategory').value;
+
+  if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    showToast("Please enter valid latitude and longitude coordinates.", "error");
+    return;
+  }
+  if (isNaN(radius) || radius <= 0) {
+    showToast("Please enter a valid radius greater than 0 km.", "error");
+    return;
+  }
+
+  let results = [];
+
+  // Check hospitals
+  if (category === 'All' || category === 'Hospitals') {
+    appState.hospitals.forEach(h => {
+      // Find matching location coords
+      const matchLoc = appState.locations.find(l => h.location.includes(l.id) || h.location.toLowerCase().includes(l.name.toLowerCase()));
+      if (matchLoc) {
+        const dist = calculateHaversineDistance(lat, lng, matchLoc.lat, matchLoc.lng);
+        if (dist <= radius) {
+          results.push({ name: h.name, category: "Hospital", lat: matchLoc.lat, lng: matchLoc.lng, distance: dist, locationStr: h.location });
+        }
+      }
+    });
+  }
+
+  // Check emergency services
+  if (category === 'All' || category === 'Emergency Services') {
+    appState.services.forEach(s => {
+      const matchLoc = appState.locations.find(l => s.location.includes(l.id) || s.location.toLowerCase().includes(l.name.toLowerCase()));
+      if (matchLoc) {
+        const dist = calculateHaversineDistance(lat, lng, matchLoc.lat, matchLoc.lng);
+        if (dist <= radius) {
+          results.push({ name: s.name, category: s.category, lat: matchLoc.lat, lng: matchLoc.lng, distance: dist, locationStr: s.location });
+        }
+      }
+    });
+  }
+
+  results.sort((a, b) => a.distance - b.distance);
+
+  const tbody = document.getElementById('nearbyResultsBody');
+  document.getElementById('nearbyResultCount').textContent = `${results.length} found`;
+
+  if (results.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No facilities found within ${radius} km radius.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = results.map(r => `
+    <tr>
+      <td><strong>${r.name}</strong></td>
+      <td><span class="badge badge-info">${r.category}</span></td>
+      <td><span class="text-xs">(${r.lat.toFixed(4)}, ${r.lng.toFixed(4)})</span></td>
+      <td><strong class="text-success">${r.distance.toFixed(3)} km</strong></td>
+      <td>
+        <button class="btn btn-primary btn-xs" onclick="app.routeToHospital('${r.locationStr}')">Route Destination</button>
+      </td>
+    </tr>
+  `).join('');
+
+  showToast(`Found ${results.length} nearby services within ${radius} km.`, "success");
+}
+
+// 12. AMBULANCE ETA CALCULATION
+function updateEtaCalculation() {
+  const speedInput = document.getElementById('ambulanceSpeedInput');
+  if (!speedInput) return;
+  const speed = parseFloat(speedInput.value) || 40; // km/h
+
+  let dist = 0.45; // default demo distance (Clock Tower to Doon Hospital)
+  if (appState.activeRoute && !isNaN(appState.activeRoute.distance)) {
+    dist = appState.activeRoute.distance;
+  }
+
+  const hours = dist / speed;
+  const minutes = Math.max(1, Math.round(hours * 60));
+
+  const now = new Date();
+  now.setMinutes(now.getMinutes() + minutes);
+  const clockTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  document.getElementById('etaDistDisplay').textContent = `${dist.toFixed(2)} km`;
+  document.getElementById('etaTimeDisplay').textContent = `${minutes} mins`;
+  document.getElementById('etaClockDisplay').textContent = clockTime;
+}
+
+// 13. EMERGENCY CONTACTS MODULE
+function renderContactsList() {
+  const container = document.getElementById('contactsGridContainer');
+  if (!container) return;
+
+  const search = document.getElementById('contactSearchInput')?.value.toLowerCase() || "";
+  const filtered = appState.contacts.filter(c => c.name.toLowerCase().includes(search) || c.category.toLowerCase().includes(search) || c.phone.toLowerCase().includes(search));
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="card p-4 text-center text-muted" style="grid-column: 1 / -1;">No matching emergency contacts found.</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(c => `
+    <div class="contact-card">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+          <h4>${c.name}</h4>
+          <span class="badge badge-secondary">${c.category}</span>
+        </div>
+        <p class="text-primary font-weight-bold" style="font-size: 15px; margin-bottom: 6px;">📞 ${c.phone}</p>
+        <p class="text-muted text-sm">${c.notes || 'No additional notes.'}</p>
+      </div>
+      <div style="border-top: 1px solid var(--border); margin-top: 16px; padding-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn btn-outline btn-xs" onclick="app.openEditContactModal('${c.id}')">Edit</button>
+        <button class="btn btn-outline btn-xs text-danger" onclick="app.deleteContact('${c.id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openAddContactModal() {
+  document.getElementById('contactEditId').value = "";
+  document.getElementById('contactForm').reset();
+  document.getElementById('contactModalTitle').textContent = "Add Emergency Contact";
+  openModal('contactModal');
+}
+
+function openEditContactModal(cId) {
+  const c = appState.contacts.find(item => item.id === cId);
+  if (!c) return;
+  document.getElementById('contactEditId').value = c.id;
+  document.getElementById('contactNameInput').value = c.name;
+  document.getElementById('contactCatInput').value = c.category;
+  document.getElementById('contactPhoneInput').value = c.phone;
+  document.getElementById('contactNotesInput').value = c.notes;
+  document.getElementById('contactModalTitle').textContent = "Edit Emergency Contact";
+  openModal('contactModal');
+}
+
+function handleContactSubmit(event) {
+  event.preventDefault();
+  const editId = document.getElementById('contactEditId').value;
+  const name = document.getElementById('contactNameInput').value;
+  const cat = document.getElementById('contactCatInput').value;
+  const phone = document.getElementById('contactPhoneInput').value;
+  const notes = document.getElementById('contactNotesInput').value;
+
+  if (editId) {
+    const c = appState.contacts.find(item => item.id === editId);
+    if (c) {
+      c.name = name;
+      c.category = cat;
+      c.phone = phone;
+      c.notes = notes;
+      showToast(`Contact ${name} updated successfully.`, "success");
+    }
+  } else {
+    const newC = {
+      id: `CON-00${Math.floor(10 + Math.random() * 90)}`,
+      name: name,
+      category: cat,
+      phone: phone,
+      notes: notes
+    };
+    appState.contacts.push(newC);
+    showToast(`Contact ${name} added successfully.`, "success");
+  }
+
+  saveDataToStorage();
+  closeModal('contactModal');
+  renderContactsList();
+}
+
+function deleteContact(cId) {
+  const c = appState.contacts.find(item => item.id === cId);
+  if (!c) return;
+  if (confirm(`Are you sure you want to delete contact ${c.name}?`)) {
+    appState.contacts = appState.contacts.filter(item => item.id !== cId);
+    saveDataToStorage();
+    showToast(`Contact ${c.name} deleted.`, "warning");
+    renderContactsList();
+  }
+}
+
+// 14. REQUEST HISTORY MODULE
+function renderHistoryList() {
+  const tbody = document.getElementById('historyTableBody');
+  if (!tbody) return;
+
+  const search = document.getElementById('historySearchInput')?.value.toLowerCase() || "";
+  const status = document.getElementById('historyStatusFilter')?.value || "";
+  const priority = document.getElementById('historyPriorityFilter')?.value || "";
+
+  const filtered = appState.requests.filter(r => {
+    const matchSearch = r.id.toLowerCase().includes(search) || r.incidentType.toLowerCase().includes(search) || r.locationName.toLowerCase().includes(search);
+    const matchStatus = !status || r.status === status;
+    const matchPriority = !priority || r.priority === priority;
+    return matchSearch && matchStatus && matchPriority;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">No request history records found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => `
+    <tr>
+      <td><strong>${r.id}</strong></td>
+      <td>${r.incidentType}</td>
+      <td><span class="badge badge-${r.priority.toLowerCase()}">${r.priority}</span></td>
+      <td>${r.locationName}</td>
+      <td>${r.assignedService || '<span class="text-muted">Unassigned</span>'}</td>
+      <td><span class="badge badge-${getStatusBadgeClass(r.status)}">${r.status}</span></td>
+      <td><span class="text-xs text-muted">${new Date(r.timestamp).toLocaleString()}</span></td>
+      <td>
+        <button class="btn btn-outline btn-xs" onclick="app.openAssignModal('${r.id}')">Inspect</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function exportHistoryCSV() {
+  let csv = "Request ID,Incident Type,Priority,Location,Assigned Service,Status,Timestamp\n";
+  appState.requests.forEach(r => {
+    csv += `"${r.id}","${r.incidentType}","${r.priority}","${r.locationName}","${r.assignedService || 'Unassigned'}","${r.status}","${r.timestamp}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.setAttribute('href', url);
+  a.setAttribute('download', `jeevanroute_request_history_${Date.now()}.csv`);
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast("Request history exported as CSV.", "success");
+}
+
+// 15. UI HELPERS & MODALS
+function openModal(modalId) {
+  document.getElementById(modalId)?.classList.add('active');
+}
+
+function closeModal(modalId) {
+  document.getElementById(modalId)?.classList.remove('active');
+}
+
+function showToast(message, type = "success") {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <span>${type === 'success' ? '✅' : type === 'error' ? '🚨' : '⚠️'}</span>
+    <span>${message}</span>
+  `;
+
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.remove();
+  }, 5000);
+}
+
+function updateDateTime() {
+  const el = document.getElementById('datetimeDisplay');
+  if (el) {
+    const now = new Date();
+    el.textContent = now.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'medium' });
+  }
+}
+
+function renderNotificationsBadge() {
+  const badge = document.getElementById('notificationCount');
+  if (badge) {
+    badge.textContent = appState.notifications.length;
+  }
+}
+
+function getStatusBadgeClass(status) {
+  switch(status) {
+    case 'Pending': return 'warning';
+    case 'Assigned': return 'info';
+    case 'Accepted': return 'info';
+    case 'En Route': return 'primary';
+    case 'Completed': return 'success';
+    case 'Cancelled': return 'secondary';
+    default: return 'secondary';
+  }
+}
+
+function getServiceBadgeClass(status) {
+  switch(status) {
+    case 'Available': return 'success';
+    case 'Assigned': return 'warning';
+    case 'Unavailable': return 'secondary';
+    default: return 'secondary';
+  }
+}
+
+// Export global app object for inline HTML event handlers
+window.app = {
+  switchView,
+  openCreateEmergencyModal,
+  fillLocationCoords,
+  handleEmergencySubmit,
+  triggerSOSModal,
+  executeSOSDispatch,
+  advanceRequestStatus,
+  cancelRequest,
+  openAssignModal,
+  confirmServiceAssignment,
+  renderServicesList,
+  toggleServiceStatus,
+  openAddServiceModal,
+  renderHospitalCatalog,
+  filterHospitalService,
+  resetHospitalFilters,
+  openHospitalDetails,
+  routeToHospitalFromModal,
+  routeToHospital,
+  loadPresetRoute,
+  swapRouteLocations,
+  calculateRoute,
+  clearRoute,
+  selectNodeFromSchematic,
+  fillNearbyCoords,
+  searchNearbyServices,
+  updateEtaCalculation,
+  renderContactsList,
+  openAddContactModal,
+  openEditContactModal,
+  handleContactSubmit,
+  deleteContact,
+  renderHistoryList,
+  exportHistoryCSV,
+  filterDashboardTable,
+  openModal,
+  closeModal
+};
+
+// Initialize app on DOM load
+document.addEventListener('DOMContentLoaded', initApp);

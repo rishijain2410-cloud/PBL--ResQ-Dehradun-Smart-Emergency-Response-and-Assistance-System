@@ -377,9 +377,521 @@ function renderCurrentView() {
   }
 }
 
+// 6. DASHBOARD & KPIS
+function updateKPIs() {
+  const totalReq = appState.requests.length;
+  const pendingReq = appState.requests.filter(r => r.status !== 'Completed' && r.status !== 'Cancelled').length;
+  const availAmb = appState.services.filter(s => s.status === 'Available' && (s.category === 'Ambulance' || s.category === 'Air Ambulance')).length;
+  const totalHosp = appState.hospitals.length;
 
-// Initialize state
+  document.getElementById('kpiTotalRequests').textContent = totalReq;
+  document.getElementById('kpiPendingRequests').textContent = pendingReq;
+  document.getElementById('kpiAvailableAmbulances').textContent = availAmb;
+  document.getElementById('kpiTotalHospitals').textContent = totalHosp;
+}
+
+function renderDashboardTable() {
+  const tbody = document.getElementById('dashRequestsBody');
+  if (!tbody) return;
+
+  const search = document.getElementById('dashSearchInput')?.value.toLowerCase() || "";
+  const priority = document.getElementById('dashPriorityFilter')?.value || "";
+
+  const filtered = appState.requests.filter(r => {
+    const matchSearch = r.id.toLowerCase().includes(search) || r.incidentType.toLowerCase().includes(search) || r.locationName.toLowerCase().includes(search);
+    const matchPriority = !priority || r.priority === priority;
+    return matchSearch && matchPriority;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No matching emergency requests found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.slice(0, 5).map(r => `
+    <tr>
+      <td><strong>${r.id}</strong></td>
+      <td>${r.incidentType}</td>
+      <td><span class="badge badge-${r.priority.toLowerCase()}">${r.priority}</span></td>
+      <td>${r.locationName}</td>
+      <td>${r.assignedService || '<span class="text-muted">Unassigned</span>'}</td>
+      <td><span class="badge badge-${getStatusBadgeClass(r.status)}">${r.status}</span></td>
+      <td>
+        <button class="btn btn-outline btn-xs" onclick="app.openAssignModal('${r.id}')">Assign</button>
+        <button class="btn btn-outline btn-xs" onclick="app.advanceRequestStatus('${r.id}')">Advance</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterDashboardTable() {
+  renderDashboardTable();
+}
+
+// 7. EMERGENCY & SOS MODULE
+function renderEmergencyList() {
+  const tbody = document.getElementById('fullEmergencyBody');
+  if (!tbody) return;
+
+  const search = document.getElementById('emergencySearch')?.value.toLowerCase() || "";
+  const status = document.getElementById('emergencyStatusFilter')?.value || "";
+  const priority = document.getElementById('emergencyPriorityFilter')?.value || "";
+
+  const filtered = appState.requests.filter(r => {
+    const matchSearch = r.id.toLowerCase().includes(search) || r.incidentType.toLowerCase().includes(search) || r.description.toLowerCase().includes(search) || r.locationName.toLowerCase().includes(search);
+    const matchStatus = !status || r.status === status;
+    const matchPriority = !priority || r.priority === priority;
+    return matchSearch && matchStatus && matchPriority;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">No emergency requests found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => `
+    <tr>
+      <td><strong>${r.id}</strong></td>
+      <td>
+        <strong>${r.incidentType}</strong><br>
+        <span class="text-muted text-xs">${r.description}</span>
+      </td>
+      <td><span class="badge badge-${r.priority.toLowerCase()}">${r.priority}</span></td>
+      <td>
+        ${r.locationName}<br>
+        <span class="text-muted text-xs">(${r.lat.toFixed(4)}, ${r.lng.toFixed(4)})</span>
+      </td>
+      <td>${r.requiredService}</td>
+      <td>${r.assignedService || '<span class="text-muted">Unassigned</span>'}</td>
+      <td><span class="badge badge-${getStatusBadgeClass(r.status)}">${r.status}</span></td>
+      <td><span class="text-xs text-muted">${new Date(r.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></td>
+      <td>
+        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+          <button class="btn btn-primary btn-xs" onclick="app.openAssignModal('${r.id}')">Assign</button>
+          <button class="btn btn-outline btn-xs" onclick="app.advanceRequestStatus('${r.id}')">Advance</button>
+          ${r.status !== 'Cancelled' && r.status !== 'Completed' ? `<button class="btn btn-outline btn-xs text-danger" onclick="app.cancelRequest('${r.id}')">Cancel</button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openCreateEmergencyModal() {
+  const locSelect = document.getElementById('modalLocationSelect');
+  locSelect.innerHTML = appState.locations.map(l => `<option value="${l.id}" data-lat="${l.lat}" data-lng="${l.lng}">${l.id} — ${l.name} (${l.category})</option>`).join('');
+  fillLocationCoords();
+  document.getElementById('emergencyForm').reset();
+  openModal('emergencyModal');
+}
+
+function fillLocationCoords() {
+  const locSelect = document.getElementById('modalLocationSelect');
+  const selectedOpt = locSelect.options[locSelect.selectedIndex];
+  if (selectedOpt) {
+    document.getElementById('modalLat').value = selectedOpt.getAttribute('data-lat');
+    document.getElementById('modalLng').value = selectedOpt.getAttribute('data-lng');
+  }
+}
+
+function handleEmergencySubmit(event) {
+  event.preventDefault();
+  const type = document.getElementById('modalIncidentType').value;
+  const desc = document.getElementById('modalDescription').value;
+  const locId = document.getElementById('modalLocationSelect').value;
+  const locObj = appState.locations.find(l => l.id === locId) || { name: "Custom Location" };
+  const lat = parseFloat(document.getElementById('modalLat').value);
+  const lng = parseFloat(document.getElementById('modalLng').value);
+  const priority = document.getElementById('modalPriority').value;
+  const reqService = document.getElementById('modalServiceType').value;
+  const contact = document.getElementById('modalContact').value;
+
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    showToast("Invalid GPS coordinates. Latitude must be between -90 and 90, Longitude between -180 and 180.", "error");
+    return;
+  }
+
+  const newId = `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
+  const newReq = {
+    id: newId,
+    incidentType: type,
+    description: desc,
+    locationId: locId,
+    locationName: locObj.name,
+    lat: lat,
+    lng: lng,
+    priority: priority,
+    requiredService: reqService,
+    assignedService: null,
+    status: "Pending",
+    contact: contact,
+    timestamp: new Date().toISOString()
+  };
+
+  appState.requests.unshift(newReq);
+  appState.notifications.unshift({ id: Date.now(), text: `New emergency request ${newId} created (${type}).`, time: "Just now" });
+  saveDataToStorage();
+  closeModal('emergencyModal');
+  showToast(`Emergency request ${newId} created successfully.`, "success");
+  renderCurrentView();
+  updateKPIs();
+  renderNotificationsBadge();
+}
+
+function triggerSOSModal() {
+  openModal('sosModal');
+}
+
+function executeSOSDispatch() {
+  const clockLoc = appState.locations.find(l => l.id === "LOC-001") || { name: "Clock Tower", lat: 30.3165, lng: 78.0322 };
+  const newId = `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  // Find nearest available ambulance
+  const availAmb = appState.services.find(s => s.category === 'Ambulance' && s.status === 'Available');
+  let assignedStr = null;
+  if (availAmb) {
+    availAmb.status = "Assigned";
+    assignedStr = `${availAmb.id} (${availAmb.name})`;
+  }
+
+  const sosReq = {
+    id: newId,
+    incidentType: "Medical Emergency",
+    description: "SOS Panic Alert triggered from Command Center Dashboard.",
+    locationId: "LOC-001",
+    locationName: clockLoc.name,
+    lat: clockLoc.lat,
+    lng: clockLoc.lng,
+    priority: "Critical",
+    requiredService: "Ambulance",
+    assignedService: assignedStr,
+    status: assignedStr ? "Assigned" : "Pending",
+    contact: "+91 112 (Demo Emergency)",
+    timestamp: new Date().toISOString()
+  };
+
+  appState.requests.unshift(sosReq);
+  appState.notifications.unshift({ id: Date.now(), text: `🚨 SOS Critical Alert ${newId} triggered at Clock Tower!`, time: "Just now" });
+  saveDataToStorage();
+  closeModal('sosModal');
+  showToast(`🚨 SOS Emergency ${newId} dispatched successfully!`, "error");
+  renderCurrentView();
+  updateKPIs();
+  renderNotificationsBadge();
+}
+
+function advanceRequestStatus(reqId) {
+  const req = appState.requests.find(r => r.id === reqId);
+  if (!req) return;
+
+  const progression = ["Pending", "Assigned", "Accepted", "En Route", "Completed"];
+  const currentIndex = progression.indexOf(req.status);
+  if (currentIndex >= 0 && currentIndex < progression.length - 1) {
+    req.status = progression[currentIndex + 1];
+
+    // If completed, release assigned service back to available
+    if (req.status === "Completed" && req.assignedService) {
+      const sIdMatch = req.assignedService.match(/SRV-\d{3}/);
+      if (sIdMatch) {
+        const srv = appState.services.find(s => s.id === sIdMatch[0]);
+        if (srv) srv.status = "Available";
+      }
+    }
+
+    saveDataToStorage();
+    showToast(`Request ${reqId} status updated to ${req.status}.`, "success");
+    renderCurrentView();
+  } else {
+    showToast(`Request ${reqId} is already ${req.status}.`, "warning");
+  }
+}
+
+function cancelRequest(reqId) {
+  const req = appState.requests.find(r => r.id === reqId);
+  if (!req) return;
+  if (confirm(`Are you sure you want to cancel request ${reqId}?`)) {
+    req.status = "Cancelled";
+    if (req.assignedService) {
+      const sIdMatch = req.assignedService.match(/SRV-\d{3}/);
+      if (sIdMatch) {
+        const srv = appState.services.find(s => s.id === sIdMatch[0]);
+        if (srv) srv.status = "Available";
+      }
+    }
+    saveDataToStorage();
+    showToast(`Request ${reqId} cancelled.`, "warning");
+    renderCurrentView();
+  }
+}
+
+// Service Assignment Modal Workflow
+let currentAssignReqId = null;
+function openAssignModal(reqId) {
+  const req = appState.requests.find(r => r.id === reqId);
+  if (!req) return;
+  currentAssignReqId = reqId;
+
+  document.getElementById('assignRequestSummary').innerHTML = `
+    <strong>Request:</strong> ${req.id} — ${req.incidentType} (${req.priority})<br>
+    <strong>Location:</strong> ${req.locationName}<br>
+    <strong>Required Service:</strong> ${req.requiredService}
+  `;
+
+  const dropdown = document.getElementById('selectServiceDropdown');
+  const availableServices = appState.services.filter(s => s.status === 'Available');
+
+  if (availableServices.length === 0) {
+    dropdown.innerHTML = `<option value="">No available services currently in demo fleet</option>`;
+  } else {
+    dropdown.innerHTML = availableServices.map(s => `<option value="${s.id}">${s.id} — ${s.name} (${s.category} at ${s.location})</option>`).join('');
+  }
+
+  openModal('assignServiceModal');
+}
+
+function confirmServiceAssignment() {
+  const sId = document.getElementById('selectServiceDropdown').value;
+  if (!sId) {
+    showToast("Please select a valid available service.", "error");
+    return;
+  }
+
+  const req = appState.requests.find(r => r.id === currentAssignReqId);
+  const srv = appState.services.find(s => s.id === sId);
+
+  if (req && srv) {
+    srv.status = "Assigned";
+    req.assignedService = `${srv.id} (${srv.name})`;
+    req.status = "Assigned";
+    saveDataToStorage();
+    closeModal('assignServiceModal');
+    showToast(`Service ${srv.name} successfully assigned to request ${req.id}.`, "success");
+    renderCurrentView();
+    updateKPIs();
+  }
+}
+
+// 8. AMBULANCES & SERVICES MODULE
+function renderServicesList() {
+  const container = document.getElementById('servicesGridContainer');
+  if (!container) return;
+
+  const search = document.getElementById('serviceSearchInput')?.value.toLowerCase() || "";
+  const cat = document.getElementById('serviceCategoryFilter')?.value || "";
+  const status = document.getElementById('serviceAvailabilityFilter')?.value || "";
+
+  const filtered = appState.services.filter(s => {
+    const matchSearch = s.id.toLowerCase().includes(search) || s.name.toLowerCase().includes(search) || s.location.toLowerCase().includes(search);
+    const matchCat = !cat || s.category === cat;
+    const matchStatus = !status || s.status === status;
+    return matchSearch && matchCat && matchStatus;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="card p-4 text-center text-muted" style="grid-column: 1 / -1;">No matching emergency services found.</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(s => `
+    <div class="service-card">
+      <div class="service-card-header">
+        <div class="service-title">
+          <h4>${s.name}</h4>
+          <span>ID: ${s.id}</span>
+        </div>
+        <span class="badge badge-${getServiceBadgeClass(s.status)}">${s.status}</span>
+      </div>
+      <div class="service-body">
+        <div><strong>Category:</strong> ${s.category}</div>
+        <div><strong>Location:</strong> ${s.location}</div>
+        <div><strong>Contact:</strong> ${s.contact}</div>
+      </div>
+      <div class="service-footer">
+        <span class="text-xs text-muted">Demo Fleet Unit</span>
+        <button class="btn btn-outline btn-xs" onclick="app.toggleServiceStatus('${s.id}')">Toggle Status</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleServiceStatus(sId) {
+  const srv = appState.services.find(s => s.id === sId);
+  if (!srv) return;
+  const statuses = ["Available", "Assigned", "Unavailable"];
+  const nextIdx = (statuses.indexOf(srv.status) + 1) % statuses.length;
+  srv.status = statuses[nextIdx];
+  saveDataToStorage();
+  showToast(`Service ${srv.id} status changed to ${srv.status}.`, "success");
+  renderServicesList();
+  updateKPIs();
+}
+
+function openAddServiceModal() {
+  const name = prompt("Enter service name (e.g. Rajpur Ambulance 3):");
+  if (!name) return;
+  const category = prompt("Enter category (Ambulance, Air Ambulance, Police, Fire Service):", "Ambulance");
+  if (!category) return;
+  const contact = prompt("Enter phone number:", "+91 135 2659999");
+  const location = prompt("Enter base location:", "LOC-001 (Clock Tower)");
+
+  const newSrv = {
+    id: `SRV-00${Math.floor(10 + Math.random() * 90)}`,
+    name: name,
+    category: category,
+    status: "Available",
+    contact: contact || "+91 135 2650000",
+    location: location || "LOC-001"
+  };
+
+  appState.services.push(newSrv);
+  saveDataToStorage();
+  showToast(`New service ${newSrv.name} added.`, "success");
+  renderServicesList();
+  updateKPIs();
+}
+
+// 9. HOSPITAL FINDER (M2 MODULE)
+function renderHospitalCatalog() {
+  const container = document.getElementById('hospitalsGridContainer');
+  if (!container) return;
+
+  const search = document.getElementById('hospitalSearchInput')?.value.toLowerCase() || "";
+  const dept = document.getElementById('hospitalDeptFilter')?.value || "";
+  const sort = document.getElementById('hospitalSortSelect')?.value || "name";
+
+  let filtered = appState.hospitals.filter(h => {
+    const matchSearch = h.name.toLowerCase().includes(search) || h.location.toLowerCase().includes(search) || h.phone.toLowerCase().includes(search);
+    const matchDept = !dept || h.departments.includes(dept);
+    const matchService = !appState.hospitalServiceFilter || h.services.includes(appState.hospitalServiceFilter);
+    return matchSearch && matchDept && matchService;
+  });
+
+  // Sorting
+  filtered.sort((a, b) => {
+    if (sort === 'name') return a.name.localeCompare(b.name);
+    if (sort === 'rating') return b.rating - a.rating;
+    if (sort === 'beds') return b.bedsAvailable - a.bedsAvailable;
+    return 0;
+  });
+
+  document.getElementById('hospitalCountText').textContent = `Showing ${filtered.length} matching hospital(s)`;
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="card p-4 text-center text-muted" style="grid-column: 1 / -1;">No matching hospitals found in demo dataset.</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(h => `
+    <div class="hospital-card">
+      <div class="hospital-header">
+        <div class="hospital-title">
+          <h4>${h.name}</h4>
+          <span>${h.location}</span>
+        </div>
+        <span class="badge badge-success">⭐ ${h.rating}</span>
+      </div>
+      <div class="hospital-body">
+        <div><strong>Beds Available:</strong> <span class="text-primary font-weight-bold">${h.bedsAvailable} / ${h.totalBeds}</span></div>
+        <div><strong>Emergency Phone:</strong> ${h.phone}</div>
+        <div class="dept-tags">
+          ${h.departments.map(d => `<span class="dept-tag">${d}</span>`).join('')}
+        </div>
+      </div>
+      <div class="hospital-footer">
+        <button class="btn btn-outline btn-sm" onclick="app.openHospitalDetails('${h.id}')">View Details</button>
+        <button class="btn btn-primary btn-sm" onclick="app.routeToHospital('${h.location}')">Use as Destination</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterHospitalService(serviceName) {
+  appState.hospitalServiceFilter = serviceName;
+  document.querySelectorAll('.pill-btn').forEach(btn => {
+    if (btn.getAttribute('data-service') === serviceName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  renderHospitalCatalog();
+}
+
+function resetHospitalFilters() {
+  document.getElementById('hospitalSearchInput').value = "";
+  document.getElementById('hospitalDeptFilter').value = "";
+  document.getElementById('hospitalSortSelect').value = "name";
+  filterHospitalService("");
+}
+
+let activeHospitalModalId = null;
+function openHospitalDetails(hId) {
+  const h = appState.hospitals.find(item => item.id === hId);
+  if (!h) return;
+  activeHospitalModalId = hId;
+
+  document.getElementById('hModalName').textContent = h.name;
+  document.getElementById('hModalBody').innerHTML = `
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div><strong>Hospital ID:</strong> ${h.id}</div>
+      <div><strong>Location / Address:</strong> ${h.location}</div>
+      <div><strong>Rating:</strong> ⭐ ${h.rating} / 5.0</div>
+      <div><strong>Bed Availability:</strong> <span class="text-success">${h.bedsAvailable} available</span> out of ${h.totalBeds} total beds</div>
+      <div><strong>Emergency Contact:</strong> ${h.phone}</div>
+      <div><strong>Notes:</strong> ${h.notes}</div>
+      <div>
+        <strong>Departments:</strong>
+        <div class="dept-tags mt-2">
+          ${h.departments.map(d => `<span class="dept-tag">${d}</span>`).join('')}
+        </div>
+      </div>
+      <div>
+        <strong>Medical Services & Facilities:</strong>
+        <div class="dept-tags mt-2">
+          ${h.services.map(s => `<span class="badge badge-info">${s}</span>`).join('')}
+        </div>
+      </div>
+      <div>
+        <strong>Available Doctors:</strong>
+        <ul style="margin-left: 20px; margin-top: 6px;">
+          ${h.doctors.map(doc => `<li>${doc}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+  `;
+  openModal('hospitalModal');
+}
+
+function routeToHospitalFromModal() {
+  const h = appState.hospitals.find(item => item.id === activeHospitalModalId);
+  if (!h) return;
+  closeModal('hospitalModal');
+  switchView('navigation');
+
+  // Extract location code (e.g., LOC-011)
+  const match = h.location.match(/LOC-\d{3}/);
+  if (match) {
+    document.getElementById('routeDestSelect').value = match[0];
+    calculateRoute();
+    showToast(`Destination set to ${h.name}.`, "success");
+  }
+}
+
+function routeToHospital(locStr) {
+  switchView('navigation');
+  const match = locStr.match(/LOC-\d{3}/);
+  if (match) {
+    document.getElementById('routeDestSelect').value = match[0];
+    calculateRoute();
+    showToast(`Destination set to ${locStr}.`, "success");
+  }
+}
+
+
+// Initialize modules
 document.addEventListener('DOMContentLoaded', () => {
   initStorage();
   initNavigation();
+  renderDashboard();
+  renderHospitals();
+  renderAmbulances();
 });

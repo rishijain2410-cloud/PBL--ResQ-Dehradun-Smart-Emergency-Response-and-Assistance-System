@@ -528,9 +528,421 @@
                                             </thead>
                                             <tbody id="routeSegmentsBody"></tbody>
                                         </table>
-                </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SVG Road Network Schematic Card -->
+                        <div class="card network-schematic-card">
+                            <div class="card-header">
+                                <h3>Dehradun Road-Network Schematic</h3>
+                                <span class="text-sm text-muted">20 Vertices • 30 Edges</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="schematic-container">
+                                    <svg id="networkSvg" viewBox="0 0 600 450" width="100%" height="100%">
+                                        <!-- Background grid/styling -->
+                                        <defs>
+                                            <radialGradient id="nodeGrad" cx="50%" cy="50%" r="50%">
+                                                <stop offset="0%" stop-color="#2878D0" />
+                                                <stop offset="100%" stop-color="#10243A" />
+                                            </radialGradient>
+                                            <radialGradient id="activeNodeGrad" cx="50%" cy="50%" r="50%">
+                                                <stop offset="0%" stop-color="#E63946" />
+                                                <stop offset="100%" stop-color="#C92A36" />
+                                            </radialGradient>
+                                        </defs>
+                                        <g id="svgEdges"></g>
+                                        <g id="svgNodes"></g>
+                                    </svg>
+                                </div>
+                                <div class="schematic-footer">
+                                    <span class="legend-item"><span class="dot bg-blue"></span> Location Node</span>
+                                    <span class="legend-item"><span class="dot bg-emergency"></span> Active Start/Dest</span>
+                                    <span class="legend-item"><span class="line bg-navigation"></span> Road Segment</span>
+                                    <p class="text-muted text-xs mt-2">Illustrative road-network visualization — not a live geographic map.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nearby Services Finder Sub-section -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h3>Nearby Services Finder (Haversine Distance Calculator)</h3>
+                            <span class="badge badge-info">Spatial Radius Search</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="nearby-search-controls">
+                                <div class="form-group">
+                                    <label for="nearbyLocationSelect">Reference Location</label>
+                                    <select id="nearbyLocationSelect" class="form-control" onchange="app.fillNearbyCoords()">
+                                        <!-- Populated by JS -->
+                                    </select>
+                                </div>
+                                <div class="form-row-2">
+                                    <div class="form-group">
+                                        <label for="nearbyLat">Latitude (°N)</label>
+                                        <input type="number" step="0.0001" id="nearbyLat" class="form-control" placeholder="30.3165">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="nearbyLng">Longitude (°E)</label>
+                                        <input type="number" step="0.0001" id="nearbyLng" class="form-control" placeholder="78.0322">
+                                    </div>
+                                </div>
+                                <div class="form-row-2">
+                                    <div class="form-group">
+                                        <label for="nearbyRadius">Radius (km)</label>
+                                        <input type="number" step="0.5" min="0.5" max="50" id="nearbyRadius" class="form-control" value="5.0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="nearbyCategory">Category</label>
+                                        <select id="nearbyCategory" class="form-control">
+                                            <option value="All">All Categories</option>
+                                            <option value="Hospitals">Hospitals</option>
+                                            <option value="Emergency Services">Emergency Services</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary btn-block" onclick="app.searchNearbyServices()">
+                                    Find Nearby Services
+                                </button>
+                            </div>
+
+                            <!-- Nearby Results Table -->
+                            <div class="nearby-results-container mt-4" id="nearbyResultsContainer">
+                                <h5>Search Results <span id="nearbyResultCount" class="badge badge-info">0 found</span></h5>
+                                <div class="table-responsive mt-2">
+                                    <table class="table" id="nearbyResultsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Facility Name</th>
+                                                <th>Category</th>
+                                                <th>Coordinates</th>
+                                                <th>Distance (km)</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="nearbyResultsBody">
+                                            <tr><td colspan="5" class="text-center text-muted">Select location and run search.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ambulance ETA & Speed Panel -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h3>Ambulance ETA & Travel Time Estimation</h3>
+                            <span class="badge badge-warning">Configurable Speed Model</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="eta-panel-grid">
+                                <div class="eta-control-box">
+                                    <div class="form-group">
+                                        <label for="ambulanceSpeedInput">Assumed Average Ambulance Speed (km/h)</label>
+                                        <input type="number" id="ambulanceSpeedInput" class="form-control" value="40" min="10" max="100" onchange="app.updateEtaCalculation()">
+                                    </div>
+                                    <p class="text-muted text-sm">
+                                        Illustrative ETA — based on assumed speed, not live traffic. Actual arrival time depends on traffic, road conditions, and dispatch delays.
+                                    </p>
+                                </div>
+                                <div class="eta-display-box">
+                                    <div class="eta-stat">
+                                        <span>Calculated Distance:</span>
+                                        <strong id="etaDistDisplay">0.00 km</strong>
+                                    </div>
+                                    <div class="eta-stat">
+                                        <span>Estimated Travel Time:</span>
+                                        <strong id="etaTimeDisplay" class="text-primary">0 mins</strong>
+                                    </div>
+                                    <div class="eta-stat">
+                                        <span>Estimated Arrival Clock:</span>
+                                        <strong id="etaClockDisplay">--:--</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 6: EMERGENCY CONTACTS -->
+                <section id="view-contacts" class="view-section">
+                    <div class="section-header">
+                        <div>
+                            <h2>Emergency Contacts Directory</h2>
+                            <p>Maintain critical personnel, hospitals, and emergency hotline contacts for Dehradun.</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-primary" onclick="app.openAddContactModal()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add Contact
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4 filter-card">
+                        <div class="search-box">
+                            <input type="text" id="contactSearchInput" placeholder="Search contact name, category, phone..." class="form-control" oninput="app.renderContactsList()">
+                        </div>
+                    </div>
+
+                    <div class="contacts-grid" id="contactsGridContainer">
+                        <!-- Populated by JS -->
+                    </div>
+                </section>
+
+                <!-- VIEW 7: REQUEST HISTORY -->
+                <section id="view-history" class="view-section">
+                    <div class="section-header">
+                        <div>
+                            <h2>Emergency Request History & Timeline</h2>
+                            <p>Auditable log of all emergency requests, service dispatches, and status progressions.</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-outline" onclick="app.exportHistoryCSV()">
+                                Export Log
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4 filter-card">
+                        <div class="filter-row">
+                            <div class="search-box">
+                                <input type="text" id="historySearchInput" placeholder="Search history ID, type..." class="form-control" oninput="app.renderHistoryList()">
+                            </div>
+                            <div class="filter-group">
+                                <select id="historyStatusFilter" class="form-control" onchange="app.renderHistoryList()">
+                                    <option value="">All Statuses</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Assigned">Assigned</option>
+                                    <option value="Accepted">Accepted</option>
+                                    <option value="En Route">En Route</option>
+                                    <option value="Completed">Completed</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                </select>
+                                <select id="historyPriorityFilter" class="form-control" onchange="app.renderHistoryList()">
+                                    <option value="">All Priorities</option>
+                                    <option value="Critical">Critical</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table" id="historyTable">
+                               <thead>
+                                    <tr>
+                                        <th>Request ID</th>
+                                        <th>Incident Type</th>
+                                        <th>Priority</th>
+                                        <th>Location</th>
+                                        <th>Assigned Service</th>
+                                        <th>Final Status</th>
+                                        <th>Timestamp</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
             </main>
         </div>
     </div>
+
+    <!-- MODALS CONTAINER -->
+    <!-- 1. Emergency Request Modal -->
+    <div class="modal-overlay" id="emergencyModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 id="emergencyModalTitle">Create Emergency Request</h3>
+                <button class="modal-close" onclick="app.closeModal('emergencyModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="emergencyForm" onsubmit="app.handleEmergencySubmit(event)">
+                    <div class="form-group">
+                        <label for="modalIncidentType">Incident Type *</label>
+                        <select id="modalIncidentType" class="form-control" required>
+                            <option value="Medical Emergency">Medical Emergency</option>
+                            <option value="Road Accident">Road Accident</option>
+                            <option value="Fire">Fire</option>
+                            <option value="Other Emergency">Other Emergency</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="modalDescription">Description / Notes *</label>
+                        <textarea id="modalDescription" class="form-control" rows="3" placeholder="Describe nature of emergency..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="modalLocationSelect">Predefined Demo Location</label>
+                        <select id="modalLocationSelect" class="form-control" onchange="app.fillLocationCoords()">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label for="modalLat">Latitude (-90 to 90) *</label>
+                            <input type="number" step="0.0001" min="-90" max="90" id="modalLat" class="form-control" value="30.3165" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="modalLng">Longitude (-180 to 180) *</label>
+                            <input type="number" step="0.0001" min="-180" max="180" id="modalLng" class="form-control" value="78.0322" required>
+                        </div>
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label for="modalPriority">Priority *</label>
+                            <select id="modalPriority" class="form-control" required>
+                                <option value="Critical">Critical</option>
+                                <option value="High">High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="modalServiceType">Required Service *</label>
+                            <select id="modalServiceType" class="form-control" required>
+                                <option value="Ambulance">Ambulance</option>
+                                <option value="Air Ambulance">Air Ambulance</option>
+                                <option value="Police">Police</option>
+                                <option value="Fire Service">Fire Service</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="modalContact">Contact Info / Phone *</label>
+                        <input type="text" id="modalContact" class="form-control" placeholder="+91 98765 43210" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="app.closeModal('emergencyModal')">Cancel</button>
+                        <button type="submit" class="btn btn-emergency">Submit Emergency Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. SOS Confirmation Modal -->
+    <div class="modal-overlay" id="sosModal">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-header bg-emergency text-white">
+                <h3>🚨 SOS Panic Dispatch Trigger</h3>
+                <button class="modal-close text-white" onclick="app.closeModal('sosModal')">&times;</button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="sos-modal-icon">⚠️</div>
+                <h4>Confirm Emergency SOS Activation</h4>
+                <p class="text-muted text-sm my-3">
+                    This action will generate a <strong>Critical Priority Medical Emergency</strong> at Clock Tower (LOC-001) and immediately attempt to dispatch the nearest available ambulance.
+                </p>
+                <div class="alert alert-warning text-xs text-left mb-3">
+                    <strong>DEMO MODE:</strong> No real emergency services are contacted. This is a simulation.
+                </div>
+                <div class="modal-footer justify-center">
+                    <button type="button" class="btn btn-outline" onclick="app.closeModal('sosModal')">Cancel</button>
+                    <button type="button" class="btn btn-emergency" onclick="app.executeSOSDispatch()">CONFIRM & DISPATCH</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Assign Service Modal -->
+    <div class="modal-overlay" id="assignServiceModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>Assign Emergency Service</h3>
+                <button class="modal-close" onclick="app.closeModal('assignServiceModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="assignRequestId">
+                <p id="assignRequestSummary" class="text-muted text-sm mb-3"></p>
+                <div class="form-group">
+                    <label for="selectServiceDropdown">Select Available Service *</label>
+                    <select id="selectServiceDropdown" class="form-control" required>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="app.closeModal('assignServiceModal')">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="app.confirmServiceAssignment()">Confirm Assignment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Hospital Details Modal -->
+    <div class="modal-overlay" id="hospitalModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3 id="hModalName">Hospital Details</h3>
+                <button class="modal-close" onclick="app.closeModal('hospitalModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="hModalBody">
+                <!-- Populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="app.closeModal('hospitalModal')">Close</button>
+                <button type="button" class="btn btn-primary" id="hModalRouteBtn" onclick="app.routeToHospitalFromModal()">Use as Destination</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Add Contact Modal -->
+    <div class="modal-overlay" id="contactModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 id="contactModalTitle">Add Emergency Contact</h3>
+                <button class="modal-close" onclick="app.closeModal('contactModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="contactForm" onsubmit="app.handleContactSubmit(event)">
+                    <input type="hidden" id="contactEditId">
+                    <div class="form-group">
+                        <label for="contactNameInput">Contact Name *</label>
+                        <input type="text" id="contactNameInput" class="form-control" placeholder="Dr. R. K. Sharma" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactCatInput">Category / Relationship *</label>
+                        <select id="contactCatInput" class="form-control" required>
+                            <option value="Hospital Dispatch">Hospital Dispatch</option>
+                            <option value="Police Control">Police Control</option>
+                            <option value="Fire Station">Fire Station</option>
+                            <option value="Trauma Specialist">Trauma Specialist</option>
+                            <option value="Municipal Authority">Municipal Authority</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactPhoneInput">Phone Number *</label>
+                        <input type="text" id="contactPhoneInput" class="form-control" placeholder="+91 135 2650000" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactNotesInput">Optional Notes</label>
+                        <textarea id="contactNotesInput" class="form-control" rows="2" placeholder="Available 24x7..."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="app.closeModal('contactModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Contact</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Link JS -->
+    <script src="script.js" defer></script>
 </body>
 </html>

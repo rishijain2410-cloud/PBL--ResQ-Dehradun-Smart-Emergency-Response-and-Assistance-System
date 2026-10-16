@@ -8,7 +8,6 @@
 using namespace std;
 
 bool Location::isValidLocationId(const string& id) {
-    // Expected format: "LOC-<digits>" with at least one digit (minimum length 5: "LOC-1")
     if (id.length() < 5) {
         return false;
     }
@@ -44,7 +43,6 @@ Location::Location(const string& locationId,
       locationType(locationType),
       address(address) {
 
-    // 1. Validate ID format
     if (locationId.empty() || !isValidLocationId(locationId)) {
         throw invalid_argument(
             "Validation Error: locationId '" + locationId +
@@ -52,12 +50,10 @@ Location::Location(const string& locationId,
         );
     }
 
-    // 2. Validate Name
     if (name.empty()) {
         throw invalid_argument("Validation Error: Location name cannot be empty.");
     }
 
-    // 3. Validate Latitude [-90, 90]
     if (latitude < -90.0 || latitude > 90.0) {
         ostringstream ss;
         ss << "Validation Error: Latitude " << latitude
@@ -65,7 +61,6 @@ Location::Location(const string& locationId,
         throw invalid_argument(ss.str());
     }
 
-    // 4. Validate Longitude [-180, 180]
     if (longitude < -180.0 || longitude > 180.0) {
         ostringstream ss;
         ss << "Validation Error: Longitude " << longitude
@@ -102,8 +97,8 @@ string Location::toString() const {
     ostringstream ss;
     ss << "[" << locationId << "] " << name
        << " (" << locationTypeToString(locationType) << ") "
-    << "at (" << fixed << setprecision(4) << latitude << ", "
-    << fixed << setprecision(4) << longitude << ")";
+       << "at (" << fixed << setprecision(4) << latitude << ", "
+       << fixed << setprecision(4) << longitude << ")";
     if (!address.empty()) {
         ss << " - " << address;
     }
@@ -124,13 +119,10 @@ string Location::locationTypeToString(LocationType type) {
 }
 
 LocationType Location::stringToLocationType(const string& typeStr) {
-    // Normalization: trim whitespace and uppercase
     string s = typeStr;
-    // Trim leading whitespace
     s.erase(s.begin(), find_if(s.begin(), s.end(), [](unsigned char ch) {
         return !isspace(ch);
     }));
-    // Trim trailing whitespace
     s.erase(find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
         return !isspace(ch);
     }).base(), s.end());

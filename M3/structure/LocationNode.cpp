@@ -48,8 +48,8 @@ double LocationNode::getLongitude() const {
 string LocationNode::toString() const {
     ostringstream ss;
     ss << "Node[" << nodeId << ": " << name
-    << " @ (" << fixed << setprecision(4) << latitude << ", "
-    << fixed << setprecision(4) << longitude << ")]";
+       << " @ (" << fixed << setprecision(4) << latitude << ", "
+       << fixed << setprecision(4) << longitude << ")]";
     return ss.str();
 }
 

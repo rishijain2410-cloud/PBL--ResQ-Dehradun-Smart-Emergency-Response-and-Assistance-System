@@ -28,7 +28,6 @@ RoadEdge::RoadEdge(const string& edgeId,
       distanceKm(distanceKm),
       roadType(roadType) {
 
-    // 1. Validate ID strings
     if (edgeId.empty()) {
         throw invalid_argument("Validation Error: edgeId cannot be empty.");
     }
@@ -39,7 +38,6 @@ RoadEdge::RoadEdge(const string& edgeId,
         throw invalid_argument("Validation Error: toNodeId cannot be empty.");
     }
 
-    // 2. Validate self-loop prevention
     if (fromNodeId == toNodeId) {
         throw invalid_argument(
             "Validation Error: Self-loop edges are not permitted. fromNodeId and toNodeId cannot be identical ('" +
@@ -47,13 +45,10 @@ RoadEdge::RoadEdge(const string& edgeId,
         );
     }
 
-    // 3. Validate road name
     if (roadName.empty()) {
         throw invalid_argument("Validation Error: roadName cannot be empty.");
     }
 
-    // 4. Validate non-negative weight (Dijkstra's shortest path requirement)
-    // Shortest path algorithms like Dijkstra assume non-negative edge weights to guarantee correctness.
     if (distanceKm <= 0.0) {
         ostringstream ss;
         ss << "Validation Error: distanceKm must be strictly positive (> 0.0) for Dijkstra compatibility. "
@@ -90,7 +85,7 @@ string RoadEdge::toString() const {
     ostringstream ss;
     ss << "Edge[" << edgeId << ": " << fromNodeId << " -> " << toNodeId
        << " via '" << roadName << "' (" << roadTypeToString(roadType) << "), "
-    << fixed << setprecision(2) << distanceKm << " km]";
+       << fixed << setprecision(2) << distanceKm << " km]";
     return ss.str();
 }
 
@@ -106,11 +101,9 @@ string RoadEdge::roadTypeToString(RoadType type) {
 
 RoadType RoadEdge::stringToRoadType(const string& typeStr) {
     string s = typeStr;
-    // Trim leading whitespace
     s.erase(s.begin(), find_if(s.begin(), s.end(), [](unsigned char ch) {
         return !isspace(ch);
     }));
-    // Trim trailing whitespace
     s.erase(find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
         return !isspace(ch);
     }).base(), s.end());

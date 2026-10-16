@@ -19,19 +19,23 @@ TransportEstimate TransportEstimator::estimateFor(TransportMode mode, const Rout
     estimate.estimatedDurationMinutes = 0.0;
     estimate.estimatedCost = 0.0;
     if (!optionPtr) {
-        // option not found
         return estimate;
     }
     estimate.displayName = optionPtr->getDisplayName();
-    if (!optionPtr->isSuitableFor(route.getTotalDistanceKm())) {
-        estimate.note = optionPtr->unsuitableReason(route.getTotalDistanceKm());
+    const double distanceKm = route.getTotalDistanceKm();
+    if (distanceKm > optionPtr->getMaxPracticalDistanceKm()) {
+        estimate.note = "Distance exceeds the practical range for this mode";
         return estimate;
     }
-    // suitable
+    if (distanceKm < 0.0 || optionPtr->getAverageSpeedKmph() <= 0.0) {
+        estimate.note = optionPtr->unsuitableReason(distanceKm);
+        return estimate;
+    }
+    // The ambulance estimate is the main one for emergency routing.
     estimate.available = true;
     estimate.note = "";
-    estimate.estimatedDurationMinutes = optionPtr->estimateDurationMinutes(route);
-    estimate.estimatedCost = optionPtr->estimateCost(route);
+    estimate.estimatedDurationMinutes = distanceKm / optionPtr->getAverageSpeedKmph() * 60.0;
+    estimate.estimatedCost = optionPtr->getBaseFare() + optionPtr->getCostPerKm() * distanceKm;
     return estimate;
 }
 
@@ -42,16 +46,22 @@ std::vector<TransportEstimate> TransportEstimator::estimateAll(const RouteRespon
         e.mode = optPtr->getMode();
         e.displayName = optPtr->getDisplayName();
         e.distanceKm = route.getTotalDistanceKm();
-        if (!optPtr->isSuitableFor(route.getTotalDistanceKm())) {
+        const double distanceKm = route.getTotalDistanceKm();
+        if (distanceKm > optPtr->getMaxPracticalDistanceKm()) {
             e.available = false;
-            e.note = optPtr->unsuitableReason(route.getTotalDistanceKm());
+            e.note = "Distance exceeds the practical range for this mode";
+            e.estimatedDurationMinutes = 0.0;
+            e.estimatedCost = 0.0;
+        } else if (distanceKm < 0.0 || optPtr->getAverageSpeedKmph() <= 0.0) {
+            e.available = false;
+            e.note = optPtr->unsuitableReason(distanceKm);
             e.estimatedDurationMinutes = 0.0;
             e.estimatedCost = 0.0;
         } else {
             e.available = true;
             e.note = "";
-            e.estimatedDurationMinutes = optPtr->estimateDurationMinutes(route);
-            e.estimatedCost = optPtr->estimateCost(route);
+            e.estimatedDurationMinutes = distanceKm / optPtr->getAverageSpeedKmph() * 60.0;
+            e.estimatedCost = optPtr->getBaseFare() + optPtr->getCostPerKm() * distanceKm;
         }
         results.push_back(e);
     }

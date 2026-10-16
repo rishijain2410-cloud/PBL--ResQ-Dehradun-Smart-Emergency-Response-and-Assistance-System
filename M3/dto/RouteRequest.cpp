@@ -7,7 +7,7 @@ using namespace std;
 RouteRequest::RouteRequest()
     : sourceLocationId(""),
       destinationLocationId(""),
-      mode(TransportMode::CAR) {}
+    mode(TransportMode::AMBULANCE) {}
 
 RouteRequest::RouteRequest(const string& sourceLocationId,
                            const string& destinationLocationId,

@@ -15,7 +15,7 @@ void RoadGraph::addNode(const LocationNode& node) {
         );
     }
     itemMapById.emplace(id, node);
-    adjacencyList[id] = {}; // Ensure empty adjacency entry is initialized
+    adjacencyList[id] = {};
 }
 
 void RoadGraph::addEdge(const RoadEdge& edge, bool bidirectional) {
@@ -23,7 +23,6 @@ void RoadGraph::addEdge(const RoadEdge& edge, bool bidirectional) {
     const string& toId = edge.getToNodeId();
     const string& edgeId = edge.getEdgeId();
 
-    // Verify both endpoints exist
     if (!hasNode(fromId)) {
         throw invalid_argument(
             "Cannot add edge '" + edgeId + "': From-node '" + fromId + "' does not exist in graph."
@@ -35,7 +34,6 @@ void RoadGraph::addEdge(const RoadEdge& edge, bool bidirectional) {
         );
     }
 
-    // Verify edge ID uniqueness
     if (uniqueIdSet.find(edgeId) != uniqueIdSet.end()) {
         throw invalid_argument(
             "Validation Error: Duplicate edge ID '" + edgeId + "' rejected."
@@ -44,10 +42,8 @@ void RoadGraph::addEdge(const RoadEdge& edge, bool bidirectional) {
 
     uniqueIdSet.insert(edgeId);
 
-    // Register forward edge
     adjacencyList[fromId].push_back(edge);
 
-    // Register reverse edge if bidirectional
     if (bidirectional) {
         RoadEdge reverseEdge(
             edgeId,
@@ -117,12 +113,10 @@ string RoadGraph::findNearestNodeId(double lat, double lon) const {
 }
 
 bool RoadGraph::isConnected() const {
-    // Vacuously connected for 0 or 1 node
     if (itemMapById.size() <= 1) {
         return true;
     }
 
-    // Canonical queue variable name from 03_SHARED_OOP_DSA_STANDARD.md
     queue<string> requestQueue;
     unordered_set<string> visited;
 
@@ -130,7 +124,6 @@ bool RoadGraph::isConnected() const {
     visited.insert(startNodeId);
     requestQueue.push(startNodeId);
 
-    // BFS Traversal
     while (!requestQueue.empty()) {
         string currentId = requestQueue.front();
         requestQueue.pop();
@@ -147,7 +140,6 @@ bool RoadGraph::isConnected() const {
         }
     }
 
-    // Graph is connected if every registered vertex was reached by BFS
     return visited.size() == itemMapById.size();
 }
 

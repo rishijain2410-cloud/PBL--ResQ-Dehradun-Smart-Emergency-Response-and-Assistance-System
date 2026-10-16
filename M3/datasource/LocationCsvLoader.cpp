@@ -17,10 +17,9 @@ vector<string> LocationCsvLoader::parseCsvLine(const string& line) {
         char ch = line[i];
 
         if (ch == '\"') {
-            // Check for escaped quote: ""
             if (inQuotes && i + 1 < line.length() && line[i + 1] == '\"') {
                 token += '\"';
-                ++i; // Skip next quote
+                ++i;
             } else {
                 inQuotes = !inQuotes;
             }
@@ -33,13 +32,10 @@ vector<string> LocationCsvLoader::parseCsvLine(const string& line) {
     }
     tokens.push_back(token);
 
-    // Trim outer whitespace for each token
     for (auto& tok : tokens) {
-        // Trim leading spaces
         tok.erase(tok.begin(), find_if(tok.begin(), tok.end(), [](unsigned char c) {
             return !isspace(c);
         }));
-        // Trim trailing spaces
         tok.erase(find_if(tok.rbegin(), tok.rend(), [](unsigned char c) {
             return !isspace(c);
         }).base(), tok.end());
@@ -52,7 +48,7 @@ vector<Location> LocationCsvLoader::loadFromFile(const string& filePath) {
     ifstream file(filePath);
     if (!file.is_open()) {
         cerr << "[LocationCsvLoader Error] Unable to open CSV file at path: "
-             << filePath << endl;
+                  << filePath << endl;
         return {};
     }
     return loadFromStream(file);
@@ -66,39 +62,34 @@ vector<Location> LocationCsvLoader::loadFromStream(istream& input) {
     while (getline(input, line)) {
         lineNumber++;
 
-        // Remove carriage return '\r' if line was saved with Windows CRLF
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
 
-        // Trim whitespace to check if empty
         string trimmed = line;
         trimmed.erase(trimmed.begin(), find_if(trimmed.begin(), trimmed.end(), [](unsigned char c) {
             return !isspace(c);
         }));
 
         if (trimmed.empty()) {
-            continue; // Skip blank lines
+            continue;
         }
 
-        // Skip comments (e.g. lines starting with '#')
         if (trimmed[0] == '#') {
             continue;
         }
 
         vector<string> fields = parseCsvLine(line);
 
-        // Check if this is the header row
         if (!fields.empty()) {
             string firstColLower = fields[0];
             transform(firstColLower.begin(), firstColLower.end(), firstColLower.begin(),
-                      [](unsigned char c) { return tolower(c); });
+                           [](unsigned char c) { return tolower(c); });
             if (firstColLower == "locationid" || firstColLower == "id") {
-                continue; // Skip header row
+                continue;
             }
         }
 
-        // Validate minimum column count: locationId, name, latitude, longitude, locationType
         if (fields.size() < 5) {
             cerr << "[LocationCsvLoader Warning] Line " << lineNumber
                       << ": Insufficient columns (expected at least 5, got "
@@ -109,8 +100,7 @@ vector<Location> LocationCsvLoader::loadFromStream(istream& input) {
         try {
             const string& id = fields[0];
             const string& name = fields[1];
-            
-            // Parse coordinates
+
             double lat = 0.0;
             double lon = 0.0;
             try {
@@ -124,13 +114,10 @@ vector<Location> LocationCsvLoader::loadFromStream(istream& input) {
                 continue;
             }
 
-            // Parse location type
             LocationType type = Location::stringToLocationType(fields[4]);
 
-            // Optional address column
             string address = (fields.size() >= 6) ? fields[5] : "";
 
-            // Construct and validate Location object
             Location loc(id, name, lat, lon, type, address);
             locations.push_back(loc);
 

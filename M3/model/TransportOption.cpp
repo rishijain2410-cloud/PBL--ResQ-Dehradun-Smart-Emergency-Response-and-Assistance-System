@@ -18,28 +18,13 @@ TransportOption::TransportOption(const string& optionId,
       maxPracticalDistanceKm(maxPracticalDistanceKm) {}
 
 double TransportOption::estimateDurationMinutes(const RouteResponse& route) const {
-    const auto& segments = route.getSegments();
-    if (segments.empty()) {
+    if (averageSpeedKmph <= 0.0) {
         return 0.0;
     }
-
-    double totalMinutes = 0.0;
-    for (const auto& seg : segments) {
-        double spd = speedFor(seg.getRoadType());
-        if (spd <= 0.0) {
-            spd = (averageSpeedKmph > 0.0 ? averageSpeedKmph : 10.0);
-        }
-        totalMinutes += (seg.getDistanceKm() / spd) * 60.0;
-    }
-
-    totalMinutes += fixedOverheadMinutes();
-    return totalMinutes;
+    return route.getTotalDistanceKm() / averageSpeedKmph * 60.0;
 }
 
 double TransportOption::estimateCost(const RouteResponse& route) const {
-    if (route.getTotalDistanceKm() <= 0.0) {
-        return 0.0;
-    }
     return baseFare + (costPerKm * route.getTotalDistanceKm());
 }
 

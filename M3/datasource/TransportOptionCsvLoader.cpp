@@ -1,8 +1,6 @@
 #include "datasource/TransportOptionCsvLoader.h"
-#include "model/WalkingOption.h"
-#include "model/TwoWheelerOption.h"
+#include "model/AmbulanceOption.h"
 #include "model/CarOption.h"
-#include "model/PublicTransportOption.h"
 #include "model/TransportMode.h"
 #include <fstream>
 #include <iostream>
@@ -43,17 +41,12 @@ shared_ptr<TransportOption> TransportOptionCsvLoader::createTransportOption(
         double baseFare,
         double maxPracticalDistanceKm) {
     switch (mode) {
-        case TransportMode::WALKING:
-            return make_shared<WalkingOption>(optionId, displayName, averageSpeedKmph, costPerKm, baseFare, maxPracticalDistanceKm);
-        case TransportMode::TWO_WHEELER:
-            return make_shared<TwoWheelerOption>(optionId, displayName, averageSpeedKmph, costPerKm, baseFare, maxPracticalDistanceKm);
+        case TransportMode::AMBULANCE:
+            return make_shared<AmbulanceOption>(optionId, displayName, averageSpeedKmph, costPerKm, baseFare, maxPracticalDistanceKm);
         case TransportMode::CAR:
             return make_shared<CarOption>(optionId, displayName, averageSpeedKmph, costPerKm, baseFare, maxPracticalDistanceKm);
-        case TransportMode::PUBLIC_TRANSPORT:
-            return make_shared<PublicTransportOption>(optionId, displayName, averageSpeedKmph, costPerKm, baseFare, maxPracticalDistanceKm);
-        default:
-            return nullptr;
     }
+    return nullptr;
 }
 
 vector<shared_ptr<TransportOption>> TransportOptionCsvLoader::loadFromFile(const string& filePath) {

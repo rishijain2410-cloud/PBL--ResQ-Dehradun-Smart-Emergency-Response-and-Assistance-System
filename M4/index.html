@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JEEVANROUTE — Smart Emergency Response & Assistance System</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for professional typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app" class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <div class="brand-logo">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="logo-icon">
+                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                        <path d="M12 5.5V19"/>
+                    </svg>
+                    <div class="brand-text">
+                        <h1>JEEVANROUTE</h1>
+                        <span>Dehradun Emergency</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-view="dashboard">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-view="emergency">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    <span>Emergency & SOS</span>
+                </button>
+                <button class="nav-item" data-view="ambulances">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 10H6"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.28a1 1 0 0 0-.684-.948l-1.923-.641a1 1 0 0 1-.393-.25l-2.5-2.5a1 1 0 0 0-.707-.293H14v8Z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+                    <span>Ambulances & Services</span>
+                </button>
+                <button class="nav-item" data-view="hospitals">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v12"/><path d="M6 12h12"/><path d="M3 21h18"/></svg>
+                    <span>Hospital Finder</span>
+                </button>
+                <button class="nav-item" data-view="navigation">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                    <span>Navigation & Routes</span>
+                </button>
+                <button class="nav-item" data-view="contacts">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>Emergency Contacts</span>
+                </button>
+                <button class="nav-item" data-view="history">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+                    <span>Request History</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="system-status">
+                    <span class="status-dot"></span>
+                    <div class="status-info">
+                        <strong>Demo System Online</strong>
+                        <span>Dehradun Grid v2.4</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Wrapper -->
+        <div class="main-wrapper">
+            <!-- Top Navigation Bar -->
+            <header class="top-nav">
+                <div class="nav-left">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle Menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <h2 id="currentPageTitle">Dashboard</h2>
+                    <span class="badge badge-demo">DEMO MODE</span>
+                </div>
+                <div class="nav-right">
+                    <div class="datetime-display" id="datetimeDisplay">Loading...</div>
+                    <button class="btn-icon" id="notificationBtn" title="Notifications">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                        <span class="notification-badge" id="notificationCount">3</span>
+                    </button>
+                    <div class="operator-profile">
+                        <div class="avatar">OP</div>
+                        <div class="operator-info">
+                            <span class="name">Demo Operator</span>
+                            <span class="role">Dehradun Dispatcher</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline btn-sm" id="resetDemoBtn" title="Reset all demo data to initial seed">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        <span>Reset Data</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Main View Container -->
+            <main class="main-content">
+                <!-- VIEW 1: DASHBOARD -->
+                <section id="view-dashboard" class="view-section active">
+                    <div class="hero-banner">
+                        <div class="hero-text">
+                            <h2>Emergency Response Command Center</h2>
+                            <p>Monitor emergency requests, discover healthcare facilities and explore ambulance routes across Dehradun.</p>
+                        </div>
+                        <div class="hero-actions">
+                            <button class="btn btn-emergency btn-lg" onclick="app.switchView('emergency'); app.openCreateEmergencyModal();">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                                Create Emergency
+                            </button>
+                            <button class="btn btn-primary btn-lg" onclick="app.switchView('hospitals')">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v12"/><path d="M6 12h12"/><path d="M3 21h18"/></svg>
+                                Explore Hospitals
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPI Cards Grid -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-icon bg-blue">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Total Requests</span>
+                                <h3 id="kpiTotalRequests">0</h3>
+                                <span class="kpi-trend positive">Active tracking</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon bg-orange">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Pending / Active</span>
+                                <h3 id="kpiPendingRequests">0</h3>
+                                <span class="kpi-trend warning">Needs dispatch</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon bg-green">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 10H6"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Available Ambulances</span>
+                                <h3 id="kpiAvailableAmbulances">0</h3>
+                                <span class="kpi-trend positive">Ready for dispatch</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon bg-purple">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-2"/></svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Hospitals in Dataset</span>
+                                <h3 id="kpiTotalHospitals">0</h3>
+                                <span class="kpi-trend">Dehradun region</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick SOS Banner -->
+                    <div class="sos-banner-card">
+                        <div class="sos-banner-content">
+                            <div class="sos-icon-pulse">🚨</div>
+                            <div>
+                                <h3>Emergency SOS Dispatcher</h3>
+                                <p>Immediate simulation trigger for critical incidents in Dehradun. Generates high-priority emergency request instantly.</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-emergency btn-lg" onclick="app.triggerSOSModal()">
+                            TRIGGER SOS NOW
+                        </button>
+                    </div>
+
+                    <!-- Recent Requests Table & Quick Actions -->
+                    <div class="dashboard-grid">
+                        <div class="card main-table-card">
+                            <div class="card-header">
+                                <h3>Recent Emergency Requests</h3>
+                                <div class="card-actions">
+                                    <input type="text" id="dashSearchInput" placeholder="Search requests..." class="form-control form-control-sm" oninput="app.filterDashboardTable()">
+                                    <select id="dashPriorityFilter" class="form-control form-control-sm" onchange="app.filterDashboardTable()">
+                                        <option value="">All Priorities</option>
+                                        <option value="Critical">Critical</option>
+                                        <option value="High">High</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Low">Low</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table" id="dashRequestsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Incident Type</th>
+                                            <th>Priority</th>
+                                            <th>Location</th>
+                                            <th>Assigned Service</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashRequestsBody">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Quick Action & System Stats Sidebar -->
+                        <div class="dashboard-sidebar">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>M3 Navigation Status</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="stat-row">
+                                        <span>Graph Vertices:</span>
+                                        <strong>20 nodes</strong>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span>Road Edges:</span>
+                                        <strong>30 segments</strong>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span>Demo Route:</span>
+                                        <strong>LOC-001 → LOC-011</strong>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span>Primary Road:</span>
+                                        <strong>Court Road (0.45 km)</strong>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span>Automated Tests:</span>
+                                        <strong class="text-success">296/296 Passed</strong>
+                                    </div>
+                                    <button class="btn btn-primary btn-block mt-3" onclick="app.switchView('navigation')">
+                                        Open Route Explorer
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h3>Quick Healthcare Reach</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted text-sm mb-3">Nearest to Clock Tower (LOC-001):</p>
+                                    <ul class="quick-facility-list">
+                                        <li>
+                                            <span>Doon Government Hospital</span>
+                                            <span class="badge badge-success">0.323 km</span>
+                                        </li>
+                                        <li>
+                                            <span>Apollo Clinic & Hospital</span>
+                                            <span class="badge badge-info">2.487 km</span>
+                                        </li>
+                                        <li>
+                                            <span>City Hospital Rajpur Road</span>
+                                            <span class="badge badge-info">3.315 km</span>
+                                        </li>
+                                    </ul>
+                                    <button class="btn btn-outline btn-block mt-3" onclick="app.switchView('hospitals')">
+                                        Browse All Hospitals
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

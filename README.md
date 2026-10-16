@@ -175,25 +175,4 @@ Version control                     Git and GitHub
 Only describe a technology as implemented after it has been configured
 and verified in the repository.
 
-Project Structure
 
-The following is an illustrative structure. Adjust it to match the
-actual repository as the project evolves.
-
-ResQ-Dehradun/
-├── M1/                 # Emergency Dispatch
-├── M2/                 # Healthcare Discovery and Assistance
-│   ├── model/          # Hospital-related data models
-│   ├── repository/     # Hospital data access
-│   ├── service/        # Search and business logic
-│   ├── dto/            # Request/response data structures
-│   └── examples/       # Demonstration code
-├── M3/                 # Navigation and Routing
-├── M4/                 # Frontend Dashboard and Integration
-├── tests/              # Tests, if maintained at repository level
-└── README.md
-
-Development Status
-
-ResQ Dehradun is under development. Update this table as each module is
-reviewed and tested.

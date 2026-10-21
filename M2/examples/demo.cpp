@@ -1,294 +1,465 @@
-
 #include "../repository/HospitalRepository.hpp"
 #include "../service/HospitalSearchService.hpp"
 
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
 
 using namespace std;
 
-// Display hospital details
-void displayHospital(const Hospital& hospital)
-{
-    cout << "\n----------------------------------------\n";
-    cout << "Hospital Name: " << hospital.getName() << '\n';
-    cout << "Hospital ID: " << hospital.getId() << '\n';
-    cout << "Address: " << hospital.getAddress() << '\n';
-    cout << "Contact: " << hospital.getContact() << '\n';
-    cout << "Rating: " << hospital.getRating() << "/5\n";
-
-    cout << "General Beds: "
-         << hospital.getBedAvailability().getGeneralBeds() << '\n';
-
-    cout << "ICU Beds: "
-         << hospital.getBedAvailability().getIcuBeds() << '\n';
-
-    cout << "Departments:\n";
-
-    for (const auto& department : hospital.getDepartments())
-    {
-        cout << "  - " << department.getName() << '\n';
-    }
-
-    cout << "Doctors:\n";
-
-    for (const auto& doctor : hospital.getDoctors())
-    {
-        cout << "  - " << doctor.getName()
-             << " | Specialty: " << doctor.getSpecialty()
-             << '\n';
-    }
-
-    cout << "Medical Services:\n";
-
-    for (const auto& service : hospital.getMedicalServices())
-    {
-        cout << "  - " << service.getName()
-             << " | "
-             << (service.isAvailable() ? "Available" : "Unavailable")
-             << '\n';
-    }
-
-    cout << "----------------------------------------\n";
-}
-
-// Display a list of hospitals
 void displayHospitals(const vector<Hospital>& hospitals)
 {
     if (hospitals.empty())
     {
-        cout << "No hospitals found matching the criteria.\n";
+        cout << "\nNo hospitals found.\n";
         return;
     }
 
-    for (const auto& hospital : hospitals)
+    cout << "\n";
+    cout << left
+         << setw(12) << "ID"
+         << setw(30) << "Hospital Name"
+         << setw(10) << "Rating"
+         << setw(15) << "General Beds"
+         << setw(12) << "ICU Beds"
+         << "\n";
+
+    cout << string(79, '-') << "\n";
+
+    for (const Hospital& hospital : hospitals)
     {
-        cout << hospital.getName()
-             << " | Rating: " << hospital.getRating()
-             << " | General Beds: "
+        cout << left
+             << setw(12) << hospital.getId()
+             << setw(30) << hospital.getName()
+             << setw(10) << hospital.getRating()
+             << setw(15)
              << hospital.getBedAvailability().getGeneralBeds()
-             << " | ICU Beds: "
+             << setw(12)
              << hospital.getBedAvailability().getIcuBeds()
-             << '\n';
+             << "\n";
     }
+}
+
+void displayHospitalDetails(const Hospital* hospital)
+{
+    if (hospital == nullptr)
+    {
+        cout << "\nHospital not found.\n";
+        return;
+    }
+
+    cout << "\n========== HOSPITAL DETAILS ==========\n";
+    cout << "ID             : " << hospital->getId() << "\n";
+    cout << "Name           : " << hospital->getName() << "\n";
+    cout << "Address        : " << hospital->getAddress() << "\n";
+    cout << "Contact        : " << hospital->getContact() << "\n";
+    cout << "Rating         : " << hospital->getRating() << "\n";
+    cout << "Location ID    : " << hospital->getLocationId() << "\n";
+
+    cout << "General Beds   : "
+         << hospital->getBedAvailability().getGeneralBeds() << "\n";
+
+    cout << "ICU Beds       : "
+         << hospital->getBedAvailability().getIcuBeds() << "\n";
+
+    cout << "Any Bed Available: "
+         << (hospital->getBedAvailability().hasAnyBed() ? "Yes" : "No")
+         << "\n";
+
+    cout << "\nDepartments:\n";
+
+    if (hospital->getDepartments().empty())
+    {
+        cout << "No department information available.\n";
+    }
+    else
+    {
+        for (const Department& department : hospital->getDepartments())
+        {
+            cout << "- " << department.getName() << "\n";
+        }
+    }
+
+    cout << "\nDoctors:\n";
+
+    if (hospital->getDoctors().empty())
+    {
+        cout << "No doctor information available.\n";
+    }
+    else
+    {
+        for (const Doctor& doctor : hospital->getDoctors())
+        {
+            cout << "- " << doctor.getName()
+                 << " | Specialty: " << doctor.getSpecialty()
+                 << " | Available: "
+                 << (doctor.isAvailable() ? "Yes" : "No")
+                 << "\n";
+        }
+    }
+
+    cout << "\nMedical Services:\n";
+
+    if (hospital->getMedicalServices().empty())
+    {
+        cout << "No medical service information available.\n";
+    }
+    else
+    {
+        for (const MedicalService& service : hospital->getMedicalServices())
+        {
+            cout << "- " << service.getName()
+                 << " | Available: "
+                 << (service.isAvailable() ? "Yes" : "No")
+                 << "\n";
+        }
+    }
+
+    cout << "======================================\n";
 }
 
 int main()
 {
-    cout << "\n";
-    cout << "============================================\n";
-    cout << "       RESQ - HOSPITAL DISCOVERY SYSTEM\n";
-    cout << "============================================\n";
-
-    // 1. Create repository
     HospitalRepository hospitals;
 
-    // 2. Create departments
-    vector<Department> departments1 = {
-        Department("DEP-CARD", "Cardiology"),
-        Department("DEP-ORTHO", "Orthopedics"),
-        Department("DEP-ER", "Emergency Medicine")
-    };
+    /*
+       Load hospital records from CSV.
+       Run the program with M2 as the working directory,
+       so the relative path "data/hospitals.csv" resolves correctly.
+    */
 
-    vector<Department> departments2 = {
-        Department("DEP-NEURO", "Neurology"),
-        Department("DEP-GEN", "General Medicine")
-    };
+    if (!hospitals.loadFromCSV("data/hospitals.csv"))
+    {
+        cerr << "Error: Could not load hospital data from CSV.\n";
+        cerr << "Check that M2/data/hospitals.csv exists and is readable.\n";
+        return 1;
+    }
 
-    vector<Department> departments3 = {
-        Department("DEP-PED", "Pediatrics"),
-        Department("DEP-CARD2", "Cardiology")
-    };
-
-    // 3. Create doctors
-    vector<Doctor> doctors1 = {
-        Doctor("DOC-001", "Dr. Asha Rawat", "DEP-CARD", "Cardiology"),
-        Doctor("DOC-002", "Dr. Dev Mehta", "DEP-ORTHO", "Orthopedics")
-    };
-
-    vector<Doctor> doctors2 = {
-        Doctor("DOC-003", "Dr. Nisha Kapoor", "DEP-NEURO", "Neurology"),
-        Doctor("DOC-004", "Dr. Rahul Sharma", "DEP-GEN", "General Medicine")
-    };
-
-    vector<Doctor> doctors3 = {
-        Doctor("DOC-005", "Dr. Meera Joshi", "DEP-PED", "Pediatrics")
-    };
-
-    // 4. Create medical services
-    vector<MedicalService> services1 = {
-        MedicalService("SRV-CT", "CT Scan", "Diagnostic imaging", true),
-        MedicalService("SRV-ER", "Emergency Care", "Emergency department", true),
-        MedicalService("SRV-MRI", "MRI", "Magnetic resonance imaging", false)
-    };
-
-    vector<MedicalService> services2 = {
-        MedicalService("SRV-NEURO", "Neurology Services", "Neurological care", true),
-        MedicalService("SRV-PHARM", "Pharmacy", "Medicines and prescriptions", true)
-    };
-
-    vector<MedicalService> services3 = {
-        MedicalService("SRV-PED", "Pediatric Care", "Child healthcare", true),
-        MedicalService("SRV-CT2", "CT Scan", "Diagnostic imaging", true)
-    };
-
-    // 5. Add hospitals to repository
-    hospitals.add(
-        Hospital(
-            "HOS-001",
-            "Dehradun General Hospital",
-            "Race Course, Dehradun",
-            "000-000-0001",
-            4.2,
-            "LOC-001",
-            BedAvailability(12, 3),
-            departments1,
-            doctors1,
-            services1
-        )
-    );
-
-    hospitals.add(
-        Hospital(
-            "HOS-002",
-            "Valley Care Centre",
-            "Rajpur Road, Dehradun",
-            "000-000-0002",
-            4.6,
-            "LOC-002",
-            BedAvailability(0, 0),
-            departments2,
-            doctors2,
-            services2
-        )
-    );
-
-    hospitals.add(
-        Hospital(
-            "HOS-003",
-            "Doon Community Hospital",
-            "Patel Nagar, Dehradun",
-            "000-000-0003",
-            3.9,
-            "LOC-003",
-            BedAvailability(18, 1),
-            departments3,
-            doctors3,
-            services3
-        )
-    );
-
-    // 6. Create search service
     HospitalSearchService search(hospitals);
 
-    // FEATURE 1: Display all hospitals
-    cout << "\n\n========== 1. ALL HOSPITALS ==========\n";
+    int choice;
 
-    HospitalSearchCriteria criteria;
-    displayHospitals(search.filterHospitals(criteria));
-
-    // FEATURE 2: Search by hospital name
-    cout << "\n\n========== 2. SEARCH BY NAME ==========\n";
-
-    criteria = HospitalSearchCriteria{};
-    criteria.nameContains = "dehradun";
-
-    displayHospitals(search.filterHospitals(criteria));
-
-    // FEATURE 3: Filter by department
-    cout << "\n\n========== 3. FILTER BY DEPARTMENT ==========\n";
-
-    criteria = HospitalSearchCriteria{};
-    criteria.departmentName = "cardio";
-
-    displayHospitals(search.filterHospitals(criteria));
-
-    // FEATURE 4: Filter by medical service
-    cout << "\n\n========== 4. FILTER BY MEDICAL SERVICE ==========\n";
-
-    criteria = HospitalSearchCriteria{};
-    criteria.medicalServiceName = "CT Scan";
-
-    displayHospitals(search.filterHospitals(criteria));
-
-    // FEATURE 5: Hospitals with available beds
-    cout << "\n\n========== 5. HOSPITALS WITH AVAILABLE BEDS ==========\n";
-
-    criteria = HospitalSearchCriteria{};
-    criteria.requireAnyAvailableBed = true;
-
-    displayHospitals(search.filterHospitals(criteria));
-
-    // FEATURE 6: Sort by rating
-    cout << "\n\n========== 6. SORT BY RATING (HIGH TO LOW) ==========\n";
-
-    criteria = HospitalSearchCriteria{};
-    criteria.sortBy = HospitalSortBy::RATING_DESC;
-
-    displayHospitals(search.filterHospitals(criteria));
-
-    // FEATURE 7: Sort by available beds
-    cout << "\n\n========== 7. SORT BY AVAILABLE BEDS ==========\n";
-
-    criteria = HospitalSearchCriteria{};
-    criteria.sortBy = HospitalSortBy::AVAILABLE_BEDS_DESC;
-
-    displayHospitals(search.filterHospitals(criteria));
-
-    // FEATURE 8: Search doctors by department
-    cout << "\n\n========== 8. DOCTORS BY DEPARTMENT ==========\n";
-
-    vector<Doctor> cardiologists =
-        search.searchDoctorsByDepartment("HOS-001", "DEP-CARD");
-
-    if (cardiologists.empty())
+    do
     {
-        cout << "No doctors found for this department.\n";
-    }
-    else
-    {
-        for (const auto& doctor : cardiologists)
+        cout << "\n";
+        cout << "============================================\n";
+        cout << " RESQ DEHRADUN - HOSPITAL DISCOVERY SYSTEM\n";
+        cout << "============================================\n";
+        cout << "1. Display all hospitals\n";
+        cout << "2. Search hospital by ID\n";
+        cout << "3. Search hospitals by name\n";
+        cout << "4. Search hospitals by department\n";
+        cout << "5. Search hospitals with available beds\n";
+        cout << "6. Sort hospitals by rating\n";
+        cout << "7. Sort hospitals by available beds\n";
+        cout << "8. Search doctors by department\n";
+        cout << "9. Add a hospital\n";
+        cout << "10. Update hospital bed availability\n";
+        cout << "11. Save hospital data to CSV\n";
+        cout << "0. Exit\n";
+        cout << "============================================\n";
+        cout << "Enter your choice: ";
+
+        if (!(cin >> choice))
         {
-            cout << doctor.getName()
-                 << " | Specialty: " << doctor.getSpecialty()
-                 << '\n';
+            cout << "\nInvalid input. Please enter a number.\n";
+            return 1;
         }
-    }
 
-    // FEATURE 9: Find hospital by ID
-    cout << "\n\n========== 9. SEARCH HOSPITAL BY ID ==========\n";
+        cin.ignore(10000, '\n');
 
-    const Hospital* selected = search.findHospitalById("HOS-001");
+        switch (choice)
+        {
+            case 1:
+            {
+                displayHospitals(hospitals.findAll());
+                break;
+            }
 
-    if (selected != nullptr)
-    {
-        displayHospital(*selected);
-    }
-    else
-    {
-        cout << "Hospital not found.\n";
-    }
+            case 2:
+            {
+                string id;
 
-    // FEATURE 10: Handle invalid hospital ID
-    cout << "\n\n========== 10. INVALID HOSPITAL ID ==========\n";
+                cout << "Enter hospital ID: ";
+                getline(cin, id);
 
-    const Hospital* missing = search.findHospitalById("HOS-999");
+                const Hospital* hospital = search.findHospitalById(id);
 
-    if (missing == nullptr)
-    {
-        cout << "Hospital not found for ID HOS-999.\n";
-    }
+                displayHospitalDetails(hospital);
+                break;
+            }
 
-    // FEATURE 11: Search with no matching results
-    cout << "\n\n========== 11. NO MATCHING RESULTS ==========\n";
+            case 3:
+            {
+                string name;
 
-    criteria = HospitalSearchCriteria{};
-    criteria.nameContains = "Nonexistent Hospital";
+                cout << "Enter hospital name or part of its name: ";
+                getline(cin, name);
 
-    displayHospitals(search.filterHospitals(criteria));
+                HospitalSearchCriteria criteria;
+                criteria.nameContains = name;
+                criteria.sortBy = HospitalSortBy::NAME;
 
-    
+                displayHospitals(search.filterHospitals(criteria));
+                break;
+            }
+
+            case 4:
+            {
+                string department;
+
+                cout << "Enter department name: ";
+                getline(cin, department);
+
+                HospitalSearchCriteria criteria;
+                criteria.departmentName = department;
+                criteria.sortBy = HospitalSortBy::NAME;
+
+                displayHospitals(search.filterHospitals(criteria));
+                break;
+            }
+
+            case 5:
+            {
+                HospitalSearchCriteria criteria;
+                criteria.requireAnyAvailableBed = true;
+                criteria.sortBy = HospitalSortBy::AVAILABLE_BEDS_DESC;
+
+                displayHospitals(search.filterHospitals(criteria));
+                break;
+            }
+
+            case 6:
+            {
+                HospitalSearchCriteria criteria;
+                criteria.sortBy = HospitalSortBy::RATING_DESC;
+
+                displayHospitals(search.filterHospitals(criteria));
+                break;
+            }
+
+            case 7:
+            {
+                HospitalSearchCriteria criteria;
+                criteria.sortBy = HospitalSortBy::AVAILABLE_BEDS_DESC;
+
+                displayHospitals(search.filterHospitals(criteria));
+                break;
+            }
+
+            case 8:
+            {
+                string hospitalId;
+                string departmentId;
+
+                cout << "Enter hospital ID: ";
+                getline(cin, hospitalId);
+
+                cout << "Enter department ID: ";
+                getline(cin, departmentId);
+
+                vector<Doctor> doctors =
+                    search.searchDoctorsByDepartment(hospitalId, departmentId);
+
+                if (doctors.empty())
+                {
+                    cout << "\nNo doctors found for the given hospital "
+                         << "and department.\n";
+                }
+                else
+                {
+                    cout << "\nDoctors found:\n";
+
+                    for (const Doctor& doctor : doctors)
+                    {
+                        cout << "ID: " << doctor.getId()
+                             << " | Name: " << doctor.getName()
+                             << " | Specialty: " << doctor.getSpecialty()
+                             << " | Available: "
+                             << (doctor.isAvailable() ? "Yes" : "No")
+                             << "\n";
+                    }
+                }
+
+                break;
+            }
+
+            case 9:
+            {
+                string id, name, address, contact, locationId;
+                double rating;
+                int generalBeds, icuBeds;
+
+                cout << "Enter hospital ID: ";
+                getline(cin, id);
+
+                cout << "Enter hospital name: ";
+                getline(cin, name);
+
+                cout << "Enter address: ";
+                getline(cin, address);
+
+                cout << "Enter contact number: ";
+                getline(cin, contact);
+
+                cout << "Enter location ID: ";
+                getline(cin, locationId);
+
+                cout << "Enter rating (0-5): ";
+
+                if (!(cin >> rating))
+                {
+                    cout << "Invalid rating input.\n";
+                    cin.clear();
+                    cin.ignore(10000, '\n');
+                    break;
+                }
+
+                cout << "Enter general bed count: ";
+
+                if (!(cin >> generalBeds))
+                {
+                    cout << "Invalid general bed count.\n";
+                    cin.clear();
+                    cin.ignore(10000, '\n');
+                    break;
+                }
+
+                cout << "Enter ICU bed count: ";
+
+                if (!(cin >> icuBeds))
+                {
+                    cout << "Invalid ICU bed count.\n";
+                    cin.clear();
+                    cin.ignore(10000, '\n');
+                    break;
+                }
+
+                cin.ignore(10000, '\n');
+
+                if (rating < 0 || rating > 5 ||
+                    generalBeds < 0 || icuBeds < 0)
+                {
+                    cout << "\nInvalid rating or bed count.\n";
+                    break;
+                }
+
+                Hospital hospital(
+                    id,
+                    name,
+                    address,
+                    contact,
+                    rating,
+                    locationId,
+                    BedAvailability(generalBeds, icuBeds)
+                );
+
+                if (hospitals.add(hospital))
+                {
+                    cout << "\nHospital added successfully in memory.\n";
+                    cout << "Choose option 11 to save changes to CSV.\n";
+                }
+                else
+                {
+                    cout << "\nCould not add hospital. "
+                         << "The ID may already exist or be empty.\n";
+                }
+
+                break;
+            }
+
+            case 10:
+            {
+                string id;
+                int generalBeds, icuBeds;
+
+                cout << "Enter hospital ID: ";
+                getline(cin, id);
+
+                const Hospital* existing = hospitals.findHospitalById(id);
+
+                if (existing == nullptr)
+                {
+                    cout << "\nHospital not found.\n";
+                    break;
+                }
+
+                cout << "Enter updated general bed count: ";
+
+                if (!(cin >> generalBeds))
+                {
+                    cout << "Invalid general bed count.\n";
+                    cin.clear();
+                    cin.ignore(10000, '\n');
+                    break;
+                }
+
+                cout << "Enter updated ICU bed count: ";
+
+                if (!(cin >> icuBeds))
+                {
+                    cout << "Invalid ICU bed count.\n";
+                    cin.clear();
+                    cin.ignore(10000, '\n');
+                    break;
+                }
+
+                cin.ignore(10000, '\n');
+
+                if (generalBeds < 0 || icuBeds < 0)
+                {
+                    cout << "\nBed counts cannot be negative.\n";
+                    break;
+                }
+
+                Hospital updated = *existing;
+
+                updated.setBedAvailability(
+                    BedAvailability(generalBeds, icuBeds)
+                );
+
+                if (hospitals.update(updated))
+                {
+                    cout << "\nBed availability updated in memory.\n";
+                    cout << "Choose option 11 to save changes to CSV.\n";
+                }
+                else
+                {
+                    cout << "\nCould not update hospital.\n";
+                }
+
+                break;
+            }
+
+            case 11:
+            {
+                if (hospitals.saveToCSV("data/hospitals.csv"))
+                {
+                    cout << "\nHospital data saved to CSV successfully.\n";
+                }
+                else
+                {
+                    cout << "\nError: Could not save hospital data to CSV.\n";
+                }
+
+                break;
+            }
+
+            case 0:
+            {
+                cout << "\nExiting ResQ Hospital Discovery System.\n";
+                cout << "Remember to save changes before exiting.\n";
+                break;
+            }
+
+            default:
+            {
+                cout << "\nInvalid choice. Please try again.\n";
+            }
+        }
+
+    } while (choice != 0);
 
     return 0;
 }

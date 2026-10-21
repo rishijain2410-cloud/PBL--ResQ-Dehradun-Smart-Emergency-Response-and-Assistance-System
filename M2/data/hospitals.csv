@@ -1,0 +1,4 @@
+id,name,address,contact,rating,locationId,generalBeds,icuBeds
+HOS-001,Dehradun General Hospital,Race Course Dehradun,000-000-0001,4.2,LOC-001,12,3
+HOS-002,Valley Care Centre,Rajpur Road Dehradun,000-000-0002,4.6,LOC-002,0,0
+HOS-003,Doon Community Hospital,Patel Nagar Dehradun,000-000-0003,3.9,LOC-003,18,1

@@ -1,184 +1,101 @@
-#include "HospitalRepository.hpp"
+#include "HospitalRepository.h"
 
-#include <algorithm>
-#include <fstream>
-#include <iomanip>
-#include <sstream>
-#include <string>
-#include <unordered_map>
-#include <vector>
+HospitalRepository::HospitalRepository() {
+    seedDehradunHospitals();
+}
 
-bool HospitalRepository::loadFromCSV(const std::string& filename)
-{
-    std::ifstream file(filename);
+bool HospitalRepository::save(const Hospital& hospital) {
+    std::lock_guard<std::mutex> lock(repoMutex);
+    storage[hospital.getId()] = hospital;
+    return true;
+}
 
-    if (!file.is_open())
-        return false;
+std::optional<Hospital> HospitalRepository::findById(const std::string& id) const {
+    std::lock_guard<std::mutex> lock(repoMutex);
+    auto it = storage.find(id);
+    if (it != storage.end()) return it->second;
+    return std::nullopt;
+}
 
-    std::string line;
-
-    // Read and skip the CSV header.
-    if (!std::getline(file, line))
-        return false;
-
-    std::unordered_map<std::string, Hospital> loadedHospitals;
-
-    while (std::getline(file, line))
-    {
-        if (line.empty())
-            continue;
-
-        std::stringstream ss(line);
-        std::vector<std::string> fields;
-        std::string field;
-
-        while (std::getline(ss, field, ','))
-            fields.push_back(field);
-
-        // Expected columns:
-        // id,name,address,contact,rating,locationId,generalBeds,icuBeds
-        if (fields.size() != 8)
-            return false;
-
-        try
-        {
-            const std::string& id = fields[0];
-
-            if (id.empty() || loadedHospitals.count(id))
-                return false;
-
-            const std::string& name = fields[1];
-            const std::string& address = fields[2];
-            const std::string& contact = fields[3];
-
-            std::size_t ratingPosition = 0;
-            double rating = std::stod(fields[4], &ratingPosition);
-
-            if (ratingPosition != fields[4].size() ||
-                rating < 0.0 || rating > 5.0)
-                return false;
-
-            const std::string& locationId = fields[5];
-
-            std::size_t generalPosition = 0;
-            int generalBeds = std::stoi(fields[6], &generalPosition);
-
-            if (generalPosition != fields[6].size() || generalBeds < 0)
-                return false;
-
-            std::size_t icuPosition = 0;
-            int icuBeds = std::stoi(fields[7], &icuPosition);
-
-            if (icuPosition != fields[7].size() || icuBeds < 0)
-                return false;
-
-            Hospital hospital(
-                id,
-                name,
-                address,
-                contact,
-                rating,
-                locationId,
-                BedAvailability(generalBeds, icuBeds)
-            );
-
-            loadedHospitals.emplace(id, hospital);
-        }
-        catch (...)
-        {
-            return false;
-        }
+std::vector<Hospital> HospitalRepository::findAll() const {
+    std::lock_guard<std::mutex> lock(repoMutex);
+    std::vector<Hospital> list;
+    for (const auto& kv : storage) {
+        list.push_back(kv.second);
     }
-
-    // Replace existing in-memory data only after successful loading.
-    itemMapById = std::move(loadedHospitals);
-
-    return true;
+    return list;
 }
 
-bool HospitalRepository::saveToCSV(const std::string& filename) const
-{
-    std::ofstream file(filename, std::ios::trunc);
-
-    if (!file.is_open())
-        return false;
-
-    file << "id,name,address,contact,rating,locationId,"
-            "generalBeds,icuBeds\n";
-
-    std::vector<Hospital> hospitals = findAll();
-
-    for (const Hospital& hospital : hospitals)
-    {
-        file << hospital.getId() << ','
-             << hospital.getName() << ','
-             << hospital.getAddress() << ','
-             << hospital.getContact() << ','
-             << std::fixed << std::setprecision(1)
-             << hospital.getRating() << ','
-             << hospital.getLocationId() << ','
-             << hospital.getBedAvailability().getGeneralBeds() << ','
-             << hospital.getBedAvailability().getIcuBeds()
-             << '\n';
-
-        if (!file)
-            return false;
-    }
-
-    file.close();
-
-    return !file.fail();
+size_t HospitalRepository::count() const {
+    std::lock_guard<std::mutex> lock(repoMutex);
+    return storage.size();
 }
 
-bool HospitalRepository::add(const Hospital& hospital)
-{
-    if (hospital.getId().empty() ||
-        itemMapById.count(hospital.getId()))
-        return false;
+void HospitalRepository::seedDehradunHospitals() {
+    // 1. Max Super Speciality Hospital
+    Hospital maxH("LOC-004", "Max Super Speciality Hospital",
+                 "Mussoorie Diversion Road, Johri, Malsi, Dehradun - 248001",
+                 "+91 135 716 2222", "24/7 Available",
+                 BedAvailability(220, 48, 28, 6, 45), 30.3812, 78.0772, 4.8);
+    maxH.addSpecialty("Trauma & Emergency");
+    maxH.addSpecialty("Cardiology");
+    maxH.addSpecialty("Neurology");
+    maxH.addSpecialty("Oncology");
+    maxH.addSpecialty("Orthopedics");
+    Department maxCardio("Cardiology", "Dr. Arvind Sharma");
+    maxCardio.addDoctor(Doctor("DOC-M01", "Dr. Arvind Sharma", "Cardiology", "Interventional Cardiologist"));
+    maxH.addDepartment(maxCardio);
+    save(maxH);
 
-    itemMapById.emplace(hospital.getId(), hospital);
+    // 2. Shri Mahant Indiresh Hospital
+    Hospital smih("LOC-005", "Shri Mahant Indiresh Hospital (SMIH)",
+                  "Patel Nagar, Dehradun, Uttarakhand - 248001",
+                  "+91 135 667 2600", "24/7 Trauma Center",
+                  BedAvailability(1500, 310, 120, 18, 250), 30.3124, 78.0289, 4.6);
+    smih.addSpecialty("Trauma & Emergency");
+    smih.addSpecialty("General Care");
+    smih.addSpecialty("Nephrology");
+    smih.addSpecialty("Cardiology");
+    save(smih);
 
-    return true;
-}
+    // 3. Synergy Institute of Medical Sciences
+    Hospital syn("LOC-006", "Synergy Institute of Medical Sciences",
+                 "Ballupur Chowk, Dehradun, Uttarakhand - 248001",
+                 "+91 135 253 1111", "24/7 Critical Care",
+                 BedAvailability(180, 32, 45, 9, 60), 30.3345, 78.0212, 4.7);
+    syn.addSpecialty("Neurology");
+    syn.addSpecialty("Cardiology");
+    syn.addSpecialty("Trauma & Emergency");
+    syn.addSpecialty("Critical Care");
+    save(syn);
 
-bool HospitalRepository::update(const Hospital& hospital)
-{
-    auto it = itemMapById.find(hospital.getId());
+    // 4. Graphic Era Institute of Medical Sciences (GEIMS)
+    Hospital geims("LOC-007", "Graphic Era Institute of Medical Sciences (GEIMS)",
+                   "16th Milestone, Chakrata Road, Dhoolkot, Dehradun - 248008",
+                   "+91 180 088 97351", "24/7 Emergency",
+                   BedAvailability(500, 140, 80, 14, 120), 30.3521, 77.9654, 4.9);
+    geims.addSpecialty("Trauma & Emergency");
+    geims.addSpecialty("General Care");
+    geims.addSpecialty("Orthopedics");
+    geims.addSpecialty("Paediatrics");
+    save(geims);
 
-    if (it == itemMapById.end())
-        return false;
+    // 5. Doon Government Hospital
+    Hospital doon("LOC-011", "Doon Government Hospital",
+                  "New Road, Race Course, Dehradun, Uttarakhand - 248001",
+                  "+91 135 265 9227", "24/7 Govt Emergency",
+                  BedAvailability(350, 65, 30, 4, 90), 30.3185, 78.0412, 4.3);
+    doon.addSpecialty("Trauma & Emergency");
+    doon.addSpecialty("General Care");
+    save(doon);
 
-    it->second = hospital;
-
-    return true;
-}
-
-const Hospital* HospitalRepository::findHospitalById(
-    const std::string& id
-) const
-{
-    auto it = itemMapById.find(id);
-
-    return it == itemMapById.end() ? nullptr : &it->second;
-}
-
-std::vector<Hospital> HospitalRepository::findAll() const
-{
-    std::vector<Hospital> itemList;
-
-    itemList.reserve(itemMapById.size());
-
-    for (const auto& entry : itemMapById)
-        itemList.push_back(entry.second);
-
-    std::sort(
-        itemList.begin(),
-        itemList.end(),
-        [](const Hospital& a, const Hospital& b)
-        {
-            return a.getId() < b.getId();
-        }
-    );
-
-    return itemList;
+    // 6. CMI Hospital
+    Hospital cmi("LOC-009", "CMI Hospital",
+                 "54 Haridwar Road, Dharampur, Dehradun, Uttarakhand - 248001",
+                 "+91 135 262 2333", "24/7 Emergency Wing",
+                 BedAvailability(100, 22, 20, 3, 40), 30.3142, 78.0511, 4.4);
+    cmi.addSpecialty("General Care");
+    cmi.addSpecialty("Gynaecology");
+    cmi.addSpecialty("Paediatrics");
+    save(cmi);
 }

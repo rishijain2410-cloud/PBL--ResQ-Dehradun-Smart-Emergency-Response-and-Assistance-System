@@ -90,17 +90,18 @@ map and location data.
 
 M4 --- Frontend Dashboard and Integration
 
-Purpose: Provide a common interface and connect the functionality
-developed by the other modules.
+Purpose: Provide patient, ambulance-driver, hospital, and administrator
+interfaces for the integrated system.
 
-Responsibilities: - Present emergency and healthcare information
-clearly. - Connect the frontend to backend services or APIs. - Display
-hospital search results and routing information when integrations are
-available. - Coordinate information flow across modules. - Handle
-loading, empty-result, and error states.
+Implemented in `M4/`: responsive HTML/CSS/JavaScript portals, sign-in
+and patient registration pages, Leaflet maps, live status views, and
+frontend API adapters for the project services. A browser-side showcase
+mock supports demonstrations when the backend is unavailable; mock
+data is not a substitute for real dispatch.
 
-Intended outcome: A unified interface for accessing the capabilities
-of the integrated ResQ system.
+The frontend expects the integrated backend at `http://localhost:8080`
+by default. See `M4/README.md` for setup, API configuration, and
+demonstration limitations.
 
 High-Level Workflow
 
@@ -164,8 +165,8 @@ hospital storage
 Inter-module communication          REST-style APIs planned
 
 Frontend                            Dashboard/interface module;
-document the chosen framework as
-confirmed
+HTML, CSS, vanilla JavaScript,
+Leaflet, Tailwind CSS, Chart.js
 
 Build                               Makefile planned for reproducible
 C++ builds

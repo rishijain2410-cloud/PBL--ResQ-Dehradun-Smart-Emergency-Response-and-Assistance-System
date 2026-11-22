@@ -1,0 +1,56 @@
+/* Custom styling for JEEVAN MARG / JEEVAN MARG */
+
+@keyframes pulse-ring {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1.15); opacity: 0.35; }
+    100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.sos-pulse {
+    animation: pulse-ring 2s infinite ease-in-out;
+}
+
+@keyframes siren-glow {
+    0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.9); }
+    100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+}
+
+.siren-active {
+    animation: siren-glow 1.2s infinite;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.3);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.6);
+}
+
+/* Leaflet Map overrides for sleek look */
+.leaflet-container {
+    width: 100%;
+    height: 100%;
+    font-family: inherit;
+    border-radius: 1rem;
+    z-index: 10;
+}
+
+.leaflet-popup-content-wrapper {
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Animated ambulance marker */
+.ambulance-marker-icon {
+    transition: transform 0.4s ease-out;
+}

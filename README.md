@@ -88,19 +88,18 @@ reaching an emergency resource.
 Route quality depends on the accuracy and freshness of the underlying
 map and location data.
 
-M4 --- Frontend Dashboard and Integration
+M4 --- Frontend Dashboard and Integration (Lead: Aryan Pundir • Member 4)
 
-Purpose: Provide a common interface and connect the functionality
-developed by the other modules.
+Purpose: Provide responsive citizen/patient, ambulance-driver, hospital ER desk, and central command interfaces for the integrated emergency response system.
 
-Responsibilities: - Present emergency and healthcare information
-clearly. - Connect the frontend to backend services or APIs. - Display
-hospital search results and routing information when integrations are
-available. - Coordinate information flow across modules. - Handle
-loading, empty-result, and error states.
+Implemented in `M4/`:
+- **4 Dedicated Portals:** Citizen SOS & Tracking (`patient.html`), Driver Cockpit & Siren Alerts (`driver.html`), Hospital ER Bed Inventory & Admissions (`hospital.html`), and Central Command Console (`index.html`).
+- **Authentication & Security:** Role-based sign-in (`login.html`), citizen registration (`register.html`), and strict patient privacy isolation.
+- **Interactive Visualizations:** OpenStreetMap / Leaflet live GPS routing, 5-stage patient dispatch progression tracker, and hospital bed capacity gauges.
+- **Academic & Mentor Documentation:** Full presentation walkthrough script, viva-voce cheatsheet, and PDF defense guide located in `M4/docs/`.
+- **Live Netlify Deployment:** Hosted and accessible at [https://jeevan-marg.netlify.app/](https://jeevan-marg.netlify.app/).
 
-Intended outcome: A unified interface for accessing the capabilities
-of the integrated ResQ system.
+The frontend expects the integrated backend at `http://localhost:8080` by default. When the backend is offline, a built-in browser showcase mock provides realistic data simulation for academic demonstrations. See [`M4/README.md`](M4/README.md) for full details.
 
 High-Level Workflow
 
@@ -164,8 +163,8 @@ hospital storage
 Inter-module communication          REST-style APIs planned
 
 Frontend                            Dashboard/interface module;
-document the chosen framework as
-confirmed
+HTML, CSS, vanilla JavaScript,
+Leaflet, Tailwind CSS, Chart.js
 
 Build                               Makefile planned for reproducible
 C++ builds

@@ -1,0 +1,365 @@
+/* ==========================================================================
+   JEEVAN MARG -- COMMON DESIGN SYSTEM & UTILITY STYLES
+   Used across Patient, Driver, Hospital, and Admin Portals
+   ========================================================================== */
+
+/* Smooth transitions */
+*, *::before, *::after {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.6);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.5);
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.8);
+}
+
+/* Toast Container & Notification Animations */
+#toast-container {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    min-width: 280px;
+    max-width: 420px;
+    padding: 0.85rem 1.15rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.825rem;
+    font-weight: 600;
+    line-height: 1.35;
+    animation: toast-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    backdrop-filter: blur(8px);
+}
+
+.toast.toast-out {
+    animation: toast-out 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-success {
+    background-color: rgba(6, 78, 59, 0.95);
+    border: 1px solid rgba(52, 211, 153, 0.5);
+    color: #ecfdf5;
+}
+.toast-error {
+    background-color: rgba(127, 29, 29, 0.95);
+    border: 1px solid rgba(248, 113, 113, 0.5);
+    color: #fef2f2;
+}
+.toast-warning {
+    background-color: rgba(120, 53, 15, 0.95);
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    color: #fffbeb;
+}
+.toast-info {
+    background-color: rgba(30, 58, 138, 0.95);
+    border: 1px solid rgba(96, 165, 250, 0.5);
+    color: #eff6ff;
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(1rem) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+@keyframes toast-out {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(0.5rem) scale(0.95);
+    }
+}
+
+/* Modal Backdrops */
+.modal-backdrop {
+    background-color: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(4px);
+    transition: opacity 0.2s ease;
+}
+
+/* Pulse Glow Keyframes */
+@keyframes sos-glow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 14px rgba(239, 68, 68, 0);
+    }
+}
+.pulse-sos {
+    animation: sos-glow 1.8s infinite;
+}
+
+@keyframes radar-ping {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+    70% {
+        transform: scale(1.6);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1.6);
+        opacity: 0;
+    }
+}
+.radar-ring {
+    animation: radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Leaflet Map Styling Tweaks */
+.leaflet-container {
+    background: #0f172a !important;
+    font-family: inherit !important;
+}
+.leaflet-popup-content-wrapper {
+    background: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 1px solid #334155 !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
+}
+.leaflet-popup-tip {
+    background: #1e293b !important;
+}
+.leaflet-popup-content {
+    margin: 0.75rem 1rem !important;
+    line-height: 1.4 !important;
+    font-size: 0.8rem !important;
+}
+
+/* Custom Marker Pin Shapes */
+.custom-pin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    color: #ffffff;
+    font-size: 14px;
+}
+.custom-pin-patient {
+    background: #3b82f6;
+    border: 2px solid #ffffff;
+}
+.custom-pin-ambulance {
+    background: #ef4444;
+    border: 2px solid #ffffff;
+}
+.custom-pin-hospital {
+    background: #10b981;
+    border: 2px solid #ffffff;
+}
+
+/* Status Indicator Dot */
+.status-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 9999px;
+    display: inline-block;
+}
+.status-dot-ready { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
+.status-dot-busy { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
+.status-dot-maintenance { background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+
+/* ==========================================================================
+   ADVANCED MAP ANIMATIONS: AMBULANCE SIREN, FLOWING DIRECTIONS & DESTINATIONS
+   ========================================================================== */
+
+/* Rotating Siren & Pulse Effect for Ambulance Marker */
+@keyframes sirenPulseRing {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8), 0 0 0 0 rgba(59, 130, 246, 0.8);
+        transform: scale(0.95);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.25), 0 0 0 18px rgba(59, 130, 246, 0.15);
+        transform: scale(1.05);
+    }
+    100% {
+        box-shadow: 0 0 0 16px rgba(239, 68, 68, 0), 0 0 0 24px rgba(59, 130, 246, 0);
+        transform: scale(0.95);
+    }
+}
+
+@keyframes sirenColorSpin {
+    0% { filter: hue-rotate(0deg) drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
+    50% { filter: hue-rotate(180deg) drop-shadow(0 0 12px rgba(59, 130, 246, 0.9)); }
+    100% { filter: hue-rotate(360deg) drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
+}
+
+.ambulance-siren-marker {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ambulance-siren-beacon {
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    background: conic-gradient(from 0deg, #ef4444 0%, #3b82f6 50%, #ef4444 100%);
+    animation: sirenPulseRing 1.4s ease-out infinite;
+    opacity: 0.85;
+}
+
+.ambulance-siren-body {
+    position: relative;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background: #0f172a;
+    border: 2px solid #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ef4444;
+    font-size: 15px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+    animation: sirenColorSpin 2s linear infinite;
+}
+
+/* Pulsing Destination Pin (Patient / Hospital) */
+@keyframes destPulseRing {
+    0% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.8); }
+    70% { transform: scale(1.04); box-shadow: 0 0 0 14px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.dest-pin-marker {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dest-pin-beacon {
+    position: absolute;
+    inset: -2px;
+    border-radius: 9999px;
+    background: rgba(16, 185, 129, 0.4);
+    animation: destPulseRing 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.dest-pin-body {
+    position: relative;
+    z-index: 10;
+    width: 30px;
+    height: 30px;
+    border-radius: 9999px;
+    background: #064e3b;
+    border: 2px solid #34d399;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a7f3d0;
+    font-size: 13px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Animated Direction Route Polyline (Flowing Ants effect) */
+@keyframes dashFlow {
+    from {
+        stroke-dashoffset: 40;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.animated-route-polyline {
+    stroke-dasharray: 8, 12 !important;
+    animation: dashFlow 0.85s linear infinite !important;
+}
+
+/* Floating Navigation HUD Card */
+.nav-hud-card {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 1000;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(59, 130, 246, 0.2);
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
+    color: #f8fafc;
+    font-size: 0.75rem;
+    backdrop-filter: blur(12px);
+    max-width: 320px;
+    pointer-events: auto;
+    transition: all 0.2s ease;
+}
+
+/* Quick Switcher Header Navigation Bar */
+.portal-quick-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    padding: 0.25rem 0.35rem;
+    border-radius: 9999px;
+}
+
+.portal-switch-pill {
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.portal-switch-pill:hover {
+    color: #ffffff;
+    background: rgba(51, 65, 85, 0.6);
+}
+
+.portal-switch-pill.active {
+    color: #ffffff;
+    background: #0284c7;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+}

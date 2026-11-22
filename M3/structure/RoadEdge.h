@@ -1,46 +1,45 @@
-#pragma once
+#ifndef M3_STRUCTURE_ROAD_EDGE_H
+#define M3_STRUCTURE_ROAD_EDGE_H
 
 #include <string>
-#include <stdexcept>
 
 enum class RoadType {
-    HIGHWAY,
-    MAIN_ROAD,
     CITY_STREET,
-    HILL_ROAD
+    MAIN_ROAD,
+    HIGHWAY,
+    HILL_ROAD,
+    UNKNOWN
 };
+
+std::string roadTypeToString(RoadType type);
+RoadType stringToRoadType(const std::string& typeStr);
 
 class RoadEdge {
 private:
-    std::string edgeId;
     std::string fromNodeId;
     std::string toNodeId;
-    std::string roadName;
     double distanceKm;
+    std::string roadName;
     RoadType roadType;
 
 public:
     RoadEdge();
+    RoadEdge(const std::string& from,
+             const std::string& to,
+             double distKm,
+             const std::string& name,
+             RoadType type);
 
-    RoadEdge(const std::string& edgeId,
-             const std::string& fromNodeId,
-             const std::string& toNodeId,
-             const std::string& roadName,
-             double distanceKm,
-             RoadType roadType);
+    const std::string& getFromNodeId() const { return fromNodeId; }
+    const std::string& getToNodeId() const { return toNodeId; }
+    double getDistanceKm() const { return distanceKm; }
+    const std::string& getRoadName() const { return roadName; }
+    RoadType getRoadType() const { return roadType; }
+    std::string getRoadTypeString() const { return roadTypeToString(roadType); }
 
-    const std::string& getEdgeId() const;
-    const std::string& getFromNodeId() const;
-    const std::string& getToNodeId() const;
-    const std::string& getRoadName() const;
-    double getDistanceKm() const;
-    RoadType getRoadType() const;
-
-    std::string toString() const;
-
-    static std::string roadTypeToString(RoadType type);
-    static RoadType stringToRoadType(const std::string& typeStr);
-
-    bool operator==(const RoadEdge& other) const;
-    bool operator!=(const RoadEdge& other) const;
+    RoadEdge getReverseEdge() const {
+        return RoadEdge(toNodeId, fromNodeId, distanceKm, roadName, roadType);
+    }
 };
+
+#endif // M3_STRUCTURE_ROAD_EDGE_H

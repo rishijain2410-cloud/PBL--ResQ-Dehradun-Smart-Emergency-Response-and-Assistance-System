@@ -1,42 +1,40 @@
-#pragma once
+#ifndef M3_STRUCTURE_ROAD_GRAPH_H
+#define M3_STRUCTURE_ROAD_GRAPH_H
 
-#include "structure/LocationNode.h"
-#include "structure/RoadEdge.h"
-
-#include <string>
-#include <vector>
+#include "LocationNode.h"
+#include "RoadEdge.h"
 #include <unordered_map>
-#include <unordered_set>
-#include <cstddef>
+#include <vector>
+#include <string>
 
 class RoadGraph {
 private:
-    std::unordered_map<std::string, LocationNode> itemMapById;
+    std::unordered_map<std::string, LocationNode> nodes;
     std::unordered_map<std::string, std::vector<RoadEdge>> adjacencyList;
-    std::unordered_set<std::string> uniqueIdSet;
+    std::vector<RoadEdge> allEdges;
 
 public:
-    RoadGraph() = default;
+    RoadGraph();
 
-    void addNode(const LocationNode& node);
-
-    void addEdge(const RoadEdge& edge, bool bidirectional = true);
-
+    // Node operations
+    bool addNode(const LocationNode& node);
     bool hasNode(const std::string& nodeId) const;
-
     const LocationNode& getNode(const std::string& nodeId) const;
+    const std::unordered_map<std::string, LocationNode>& getAllNodes() const { return nodes; }
+    size_t getNodeCount() const { return nodes.size(); }
 
+    // Edge operations
+    void addEdge(const RoadEdge& edge, bool bidirectional = true);
     const std::vector<RoadEdge>& getNeighbors(const std::string& nodeId) const;
+    const std::vector<RoadEdge>& getAllEdges() const { return allEdges; }
+    size_t getEdgeCount() const { return allEdges.size(); }
 
-    std::size_t nodeCount() const;
-
-    std::size_t edgeCount() const;
-
+    // Algorithmic graph analysis
+    bool isConnected() const;
     std::string findNearestNodeId(double lat, double lon) const;
 
-    bool isConnected() const;
-
-    std::vector<std::string> getAllNodeIds() const;
-
+    // Clears graph
     void clear();
 };
+
+#endif // M3_STRUCTURE_ROAD_GRAPH_H

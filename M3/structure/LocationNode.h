@@ -1,32 +1,24 @@
-#pragma once
+#ifndef M3_STRUCTURE_LOCATION_NODE_H
+#define M3_STRUCTURE_LOCATION_NODE_H
 
-#include "model/Location.h"
+#include "../model/Location.h"
 #include <string>
 
 class LocationNode {
 private:
-    std::string nodeId;
-    std::string name;
-    double latitude;
-    double longitude;
+    Location location;
 
 public:
     LocationNode();
+    explicit LocationNode(const Location& loc);
 
-    LocationNode(const std::string& nodeId,
-                 const std::string& name,
-                 double latitude,
-                 double longitude);
-
-    static LocationNode fromLocation(const Location& location);
-
-    const std::string& getNodeId() const;
-    const std::string& getName() const;
-    double getLatitude() const;
-    double getLongitude() const;
-
-    std::string toString() const;
-
-    bool operator==(const LocationNode& other) const;
-    bool operator!=(const LocationNode& other) const;
+    const std::string& getId() const { return location.getId(); }
+    const std::string& getName() const { return location.getName(); }
+    double getLatitude() const { return location.getLatitude(); }
+    double getLongitude() const { return location.getLongitude(); }
+    LocationType getType() const { return location.getType(); }
+    const Location& getLocation() const { return location; }
+    Location& getLocationRef() { return location; }
 };
+
+#endif // M3_STRUCTURE_LOCATION_NODE_H

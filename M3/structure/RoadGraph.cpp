@@ -1,159 +1,110 @@
-#include "structure/RoadGraph.h"
-#include "util/GeoUtil.h"
-
+#include "RoadGraph.h"
+#include "../util/GeoUtil.h"
 #include <queue>
+#include <unordered_set>
 #include <limits>
 #include <stdexcept>
 
-using namespace std;
+RoadGraph::RoadGraph() {}
 
-void RoadGraph::addNode(const LocationNode& node) {
-    const string& id = node.getNodeId();
-    if (itemMapById.find(id) != itemMapById.end()) {
-        throw invalid_argument(
-            "Validation Error: Node with ID '" + id + "' already exists in RoadGraph."
-        );
+bool RoadGraph::addNode(const LocationNode& node) {
+    const std::string& id = node.getId();
+    if (nodes.find(id) != nodes.end()) {
+        return false; // Already present
     }
-    itemMapById.emplace(id, node);
-    adjacencyList[id] = {};
+    nodes[id] = node;
+    adjacencyList[id] = std::vector<RoadEdge>();
+    return true;
 }
 
-void RoadGraph::addEdge(const RoadEdge& edge, bool bidirectional) {
-    const string& fromId = edge.getFromNodeId();
-    const string& toId = edge.getToNodeId();
-    const string& edgeId = edge.getEdgeId();
-
-    if (!hasNode(fromId)) {
-        throw invalid_argument(
-            "Cannot add edge '" + edgeId + "': From-node '" + fromId + "' does not exist in graph."
-        );
-    }
-    if (!hasNode(toId)) {
-        throw invalid_argument(
-            "Cannot add edge '" + edgeId + "': To-node '" + toId + "' does not exist in graph."
-        );
-    }
-
-    if (uniqueIdSet.find(edgeId) != uniqueIdSet.end()) {
-        throw invalid_argument(
-            "Validation Error: Duplicate edge ID '" + edgeId + "' rejected."
-        );
-    }
-
-    uniqueIdSet.insert(edgeId);
-
-    adjacencyList[fromId].push_back(edge);
-
-    if (bidirectional) {
-        RoadEdge reverseEdge(
-            edgeId,
-            toId,
-            fromId,
-            edge.getRoadName(),
-            edge.getDistanceKm(),
-            edge.getRoadType()
-        );
-        adjacencyList[toId].push_back(reverseEdge);
-    }
+bool RoadGraph::hasNode(const std::string& nodeId) const {
+    return nodes.find(nodeId) != nodes.end();
 }
 
-bool RoadGraph::hasNode(const string& nodeId) const {
-    return itemMapById.find(nodeId) != itemMapById.end();
-}
-
-const LocationNode& RoadGraph::getNode(const string& nodeId) const {
-    auto it = itemMapById.find(nodeId);
-    if (it == itemMapById.end()) {
-        throw out_of_range(
-            "LocationNode with ID '" + nodeId + "' was not found in RoadGraph."
-        );
+const LocationNode& RoadGraph::getNode(const std::string& nodeId) const {
+    auto it = nodes.find(nodeId);
+    if (it == nodes.end()) {
+        throw std::out_of_range("Node not found in graph: " + nodeId);
     }
     return it->second;
 }
 
-const vector<RoadEdge>& RoadGraph::getNeighbors(const string& nodeId) const {
-    if (!hasNode(nodeId)) {
-        throw out_of_range(
-            "Cannot get neighbors: LocationNode with ID '" + nodeId + "' was not found in RoadGraph."
-        );
-    }
-    return adjacencyList.at(nodeId);
-}
-
-size_t RoadGraph::nodeCount() const {
-    return itemMapById.size();
-}
-
-size_t RoadGraph::edgeCount() const {
-    return uniqueIdSet.size();
-}
-
-string RoadGraph::findNearestNodeId(double lat, double lon) const {
-    if (itemMapById.empty()) {
-        throw runtime_error("Cannot find nearest node: RoadGraph contains no nodes.");
+void RoadGraph::addEdge(const RoadEdge& edge, bool bidirectional) {
+    if (!hasNode(edge.getFromNodeId()) || !hasNode(edge.getToNodeId())) {
+        throw std::invalid_argument("Cannot add edge: one or both endpoints do not exist in graph ("
+                                    + edge.getFromNodeId() + " -> " + edge.getToNodeId() + ")");
     }
 
-    string nearestNodeId = "";
-    double minDistanceKm = numeric_limits<double>::infinity();
+    adjacencyList[edge.getFromNodeId()].push_back(edge);
+    allEdges.push_back(edge);
 
-    for (const auto& entry : itemMapById) {
-        const LocationNode& node = entry.second;
-        double dist = GeoUtil::haversineDistanceKm(
-            lat, lon,
-            node.getLatitude(), node.getLongitude()
-        );
-
-        if (dist < minDistanceKm) {
-            minDistanceKm = dist;
-            nearestNodeId = node.getNodeId();
-        }
+    if (bidirectional) {
+        RoadEdge rev = edge.getReverseEdge();
+        adjacencyList[edge.getToNodeId()].push_back(rev);
+        allEdges.push_back(rev);
     }
+}
 
-    return nearestNodeId;
+static const std::vector<RoadEdge> EMPTY_EDGES;
+
+const std::vector<RoadEdge>& RoadGraph::getNeighbors(const std::string& nodeId) const {
+    auto it = adjacencyList.find(nodeId);
+    if (it == adjacencyList.end()) {
+        return EMPTY_EDGES;
+    }
+    return it->second;
 }
 
 bool RoadGraph::isConnected() const {
-    if (itemMapById.size() <= 1) {
-        return true;
-    }
+    if (nodes.empty()) return true;
+    if (nodes.size() == 1) return true;
 
-    queue<string> requestQueue;
-    unordered_set<string> visited;
+    // Pick first node as source
+    std::string startNode = nodes.begin()->first;
+    std::unordered_set<std::string> visited;
+    std::queue<std::string> q;
 
-    string startNodeId = itemMapById.begin()->first;
-    visited.insert(startNodeId);
-    requestQueue.push(startNodeId);
+    q.push(startNode);
+    visited.insert(startNode);
 
-    while (!requestQueue.empty()) {
-        string currentId = requestQueue.front();
-        requestQueue.pop();
+    while (!q.empty()) {
+        std::string curr = q.front();
+        q.pop();
 
-        auto it = adjacencyList.find(currentId);
-        if (it != adjacencyList.end()) {
-            for (const auto& edge : it->second) {
-                const string& neighborId = edge.getToNodeId();
-                if (visited.find(neighborId) == visited.end()) {
-                    visited.insert(neighborId);
-                    requestQueue.push(neighborId);
-                }
+        for (const auto& edge : getNeighbors(curr)) {
+            const std::string& nextNode = edge.getToNodeId();
+            if (visited.find(nextNode) == visited.end()) {
+                visited.insert(nextNode);
+                q.push(nextNode);
             }
         }
     }
 
-    return visited.size() == itemMapById.size();
+    return visited.size() == nodes.size();
 }
 
-vector<string> RoadGraph::getAllNodeIds() const {
-    vector<string> ids;
-    ids.reserve(itemMapById.size());
-    for (const auto& pair : itemMapById) {
-        ids.push_back(pair.first);
+std::string RoadGraph::findNearestNodeId(double lat, double lon) const {
+    if (nodes.empty()) {
+        return "";
     }
-    return ids;
+
+    std::string nearestId = "";
+    double minDistance = std::numeric_limits<double>::max();
+
+    for (const auto& kv : nodes) {
+        const LocationNode& node = kv.second;
+        double dist = GeoUtil::haversineDistanceKm(lat, lon, node.getLatitude(), node.getLongitude());
+        if (dist < minDistance) {
+            minDistance = dist;
+            nearestId = kv.first;
+        }
+    }
+
+    return nearestId;
 }
 
 void RoadGraph::clear() {
-    itemMapById.clear();
+    nodes.clear();
     adjacencyList.clear();
-    uniqueIdSet.clear();
+    allEdges.clear();
 }

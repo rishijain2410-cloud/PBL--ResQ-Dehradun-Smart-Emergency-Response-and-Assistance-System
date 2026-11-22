@@ -1,0 +1,24 @@
+# Build artifacts
+m3_navigation/build/
+m3_navigation/*.o
+*.exe
+*.out
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# SQLite database files (generated at runtime)
+m3_navigation/data/*.db
+m3_navigation/data/*.db-wal
+m3_navigation/data/*.db-shm
+
+# SQLite amalgamation (tracked in repository)
+# m3_navigation/third_party/

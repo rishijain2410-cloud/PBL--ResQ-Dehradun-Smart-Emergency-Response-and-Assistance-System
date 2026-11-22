@@ -1,52 +1,61 @@
-#pragma once
+#ifndef M3_DTO_API_RESPONSE_H
+#define M3_DTO_API_RESPONSE_H
 
 #include <string>
-
-enum class ErrorCode {
-    NONE,
-    VALIDATION_ERROR,
-    NOT_FOUND,
-    NO_RESULTS,
-    INVALID_ID,
-    SERVICE_UNAVAILABLE,
-    INTERNAL_ERROR
-};
-
-inline std::string errorCodeToString(ErrorCode code) {
-    switch (code) {
-        case ErrorCode::NONE:                return "";
-        case ErrorCode::VALIDATION_ERROR:    return "VALIDATION_ERROR";
-        case ErrorCode::NOT_FOUND:           return "NOT_FOUND";
-        case ErrorCode::NO_RESULTS:          return "NO_RESULTS";
-        case ErrorCode::INVALID_ID:          return "INVALID_ID";
-        case ErrorCode::SERVICE_UNAVAILABLE: return "SERVICE_UNAVAILABLE";
-        case ErrorCode::INTERNAL_ERROR:      return "INTERNAL_ERROR";
-        default:                             return "UNKNOWN_ERROR";
-    }
-}
+#include <sstream>
 
 template <typename T>
-struct ApiResponse {
+class ApiResponse {
+private:
     bool success;
+    std::string status;
     std::string message;
-    T data;
     std::string errorCode;
+    T data;
 
-    ApiResponse()
-        : success(false), message(""), data(T{}), errorCode("") {}
+public:
+    ApiResponse(bool ok, const std::string& stat, const std::string& msg, const std::string& err, const T& d)
+        : success(ok), status(stat), message(msg), errorCode(err), data(d) {}
 
-    ApiResponse(bool success, const std::string& message, const T& data, const std::string& errorCode = "")
-        : success(success), message(message), data(data), errorCode(errorCode) {}
-
-    static ApiResponse<T> ok(const T& data, const std::string& message = "Operation completed successfully") {
-        return ApiResponse<T>(true, message, data, "");
+    static ApiResponse<T> ok(const T& d, const std::string& msg = "Success") {
+        return ApiResponse<T>(true, "OK", msg, "", d);
     }
 
-    static ApiResponse<T> fail(const std::string& message, ErrorCode code = ErrorCode::INTERNAL_ERROR) {
-        return ApiResponse<T>(false, message, T{}, errorCodeToString(code));
+    static ApiResponse<T> error(const std::string& errCode, const std::string& msg, const T& fallback = T()) {
+        return ApiResponse<T>(false, "ERROR", msg, errCode, fallback);
     }
 
-    static ApiResponse<T> fail(const std::string& message, const std::string& customErrorCode) {
-        return ApiResponse<T>(false, message, T{}, customErrorCode);
+    bool isSuccess() const { return success; }
+    const std::string& getStatus() const { return status; }
+    const std::string& getMessage() const { return message; }
+    const std::string& getErrorCode() const { return errorCode; }
+    const T& getData() const { return data; }
+
+    std::string toJson() const {
+        std::ostringstream ss;
+        ss << "{"
+           << "\"success\":" << (success ? "true" : "false") << ","
+           << "\"status\":\"" << status << "\","
+           << "\"message\":\"" << message << "\","
+           << "\"errorCode\":\"" << errorCode << "\","
+           << "\"data\":" << data.toJson()
+           << "}";
+        return ss.str();
     }
 };
+
+// Specialization for raw string data
+template <>
+inline std::string ApiResponse<std::string>::toJson() const {
+    std::ostringstream ss;
+    ss << "{"
+       << "\"success\":" << (success ? "true" : "false") << ","
+       << "\"status\":\"" << status << "\","
+       << "\"message\":\"" << message << "\","
+       << "\"errorCode\":\"" << errorCode << "\","
+       << "\"data\":" << data
+       << "}";
+    return ss.str();
+}
+
+#endif // M3_DTO_API_RESPONSE_H

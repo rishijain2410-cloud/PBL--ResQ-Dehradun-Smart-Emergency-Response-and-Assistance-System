@@ -1,96 +1,65 @@
-#include "dto/RouteResponse.h"
-
-#include <cmath>
+#include "RouteResponse.h"
 #include <sstream>
 #include <iomanip>
 
-using namespace std;
-
 RouteResponse::RouteResponse()
-    : startNodeId(""),
-      endNodeId(""),
-      totalDistanceKm(0.0),
-      pathNodeIds({}),
-      segments({}),
-      nodesExplored(0) {}
+    : startNodeId(""), endNodeId(""), totalDistanceKm(0.0),
+      nodesExplored(0), algorithm("Dijkstra (Min-Heap)") {}
 
-RouteResponse::RouteResponse(const string& startNodeId,
-                             const string& endNodeId,
-                             double totalDistanceKm,
-                             const vector<string>& pathNodeIds,
-                             const vector<RouteSegment>& segments,
-                             size_t nodesExplored)
-    : startNodeId(startNodeId),
-      endNodeId(endNodeId),
-      totalDistanceKm(totalDistanceKm),
-      pathNodeIds(pathNodeIds),
-      segments(segments),
-      nodesExplored(nodesExplored) {
+RouteResponse::RouteResponse(const std::string& start,
+                             const std::string& end,
+                             double distance,
+                             const std::vector<std::string>& pathNodes,
+                             const std::vector<RouteSegment>& segs,
+                             int explored,
+                             const std::string& algo)
+    : startNodeId(start), endNodeId(end), totalDistanceKm(distance),
+      pathNodeIds(pathNodes), segments(segs),
+      nodesExplored(explored), algorithm(algo) {}
 
-    double sumDist = 0.0;
-    for (const auto& seg : segments) {
-        sumDist += seg.getDistanceKm();
-    }
-
-    if (segments.empty()) {
-        if (abs(totalDistanceKm) > 1e-6) {
-            throw invalid_argument(
-                "Invariant Error: Empty route segments must have totalDistanceKm == 0.0"
-            );
-        }
-    } else {
-        if (abs(totalDistanceKm - sumDist) > 1e-4) {
-            ostringstream ss;
-            ss << "Invariant Error: totalDistanceKm (" << totalDistanceKm
-               << ") does not equal sum of segment distances (" << sumDist << ").";
-            throw invalid_argument(ss.str());
-        }
-    }
+void RouteResponse::addTravelEstimate(const std::string& mode, double minutes, double cost) {
+    travelTimeMinutes[mode] = minutes;
+    estimatedCost[mode] = cost;
 }
 
-const string& RouteResponse::getStartNodeId() const {
-    return startNodeId;
-}
-
-const string& RouteResponse::getEndNodeId() const {
-    return endNodeId;
-}
-
-double RouteResponse::getTotalDistanceKm() const {
-    return totalDistanceKm;
-}
-
-const vector<string>& RouteResponse::getPathNodeIds() const {
-    return pathNodeIds;
-}
-
-const vector<RouteSegment>& RouteResponse::getSegments() const {
-    return segments;
-}
-
-size_t RouteResponse::getNodesExplored() const {
-    return nodesExplored;
-}
-
-size_t RouteResponse::segmentCount() const {
-    return segments.size();
-}
-
-string RouteResponse::toString() const {
-    ostringstream ss;
-    if (pathNodeIds.empty()) {
-        return "Route[Empty]";
-    }
+std::string RouteResponse::toJson() const {
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(3);
+    ss << "{"
+       << "\"startNodeId\":\"" << startNodeId << "\","
+       << "\"endNodeId\":\"" << endNodeId << "\","
+       << "\"totalDistanceKm\":" << totalDistanceKm << ","
+       << "\"nodesExplored\":" << nodesExplored << ","
+       << "\"algorithm\":\"" << algorithm << "\","
+       << "\"pathNodeIds\":[";
 
     for (size_t i = 0; i < pathNodeIds.size(); ++i) {
-        ss << pathNodeIds[i];
-        if (i + 1 < pathNodeIds.size()) {
-            ss << " -> ";
-        }
+        ss << "\"" << pathNodeIds[i] << "\"";
+        if (i + 1 < pathNodeIds.size()) ss << ",";
     }
+    ss << "],";
 
-    ss << " (Total: " << fixed << setprecision(2) << totalDistanceKm
-       << " km across " << segments.size() << " segment" << (segments.size() == 1 ? "" : "s")
-       << ", " << nodesExplored << " nodes explored)";
+    ss << "\"segments\":[";
+    for (size_t i = 0; i < segments.size(); ++i) {
+        ss << segments[i].toJson();
+        if (i + 1 < segments.size()) ss << ",";
+    }
+    ss << "],";
+
+    ss << "\"travelEstimates\":{";
+    size_t count = 0;
+    for (const auto& kv : travelTimeMinutes) {
+        double cost = 0.0;
+        auto costIt = estimatedCost.find(kv.first);
+        if (costIt != estimatedCost.end()) cost = costIt->second;
+
+        ss << "\"" << kv.first << "\":{"
+           << "\"durationMinutes\":" << kv.second << ","
+           << "\"estimatedCostRupees\":" << cost
+           << "}";
+        if (++count < travelTimeMinutes.size()) ss << ",";
+    }
+    ss << "}}";
+
     return ss.str();
 }

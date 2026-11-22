@@ -1,33 +1,42 @@
-#pragma once
+#ifndef M3_DTO_ROUTE_SEGMENT_H
+#define M3_DTO_ROUTE_SEGMENT_H
 
-#include "structure/RoadEdge.h"
+#include "../structure/RoadEdge.h"
 #include <string>
+#include <sstream>
+#include <iomanip>
 
-class RouteSegment {
-private:
+struct RouteSegment {
     std::string fromNodeId;
     std::string toNodeId;
     std::string roadName;
-    double distanceKm;
     RoadType roadType;
+    double distanceKm;
 
-public:
-    RouteSegment();
+    RouteSegment()
+        : fromNodeId(""), toNodeId(""), roadName(""),
+          roadType(RoadType::UNKNOWN), distanceKm(0.0) {}
 
-    RouteSegment(const std::string& fromNodeId,
-                 const std::string& toNodeId,
-                 const std::string& roadName,
-                 double distanceKm,
-                 RoadType roadType);
+    RouteSegment(const std::string& from,
+                 const std::string& to,
+                 const std::string& name,
+                 RoadType type,
+                 double dist)
+        : fromNodeId(from), toNodeId(to), roadName(name),
+          roadType(type), distanceKm(dist) {}
 
-    const std::string& getFromNodeId() const;
-    const std::string& getToNodeId() const;
-    const std::string& getRoadName() const;
-    double getDistanceKm() const;
-    RoadType getRoadType() const;
-
-    std::string toString() const;
-
-    bool operator==(const RouteSegment& other) const;
-    bool operator!=(const RouteSegment& other) const;
+    std::string toJson() const {
+        std::ostringstream ss;
+        ss << std::fixed << std::setprecision(3);
+        ss << "{"
+           << "\"from\":\"" << fromNodeId << "\","
+           << "\"to\":\"" << toNodeId << "\","
+           << "\"roadName\":\"" << roadName << "\","
+           << "\"roadType\":\"" << roadTypeToString(roadType) << "\","
+           << "\"distanceKm\":" << distanceKm
+           << "}";
+        return ss.str();
+    }
 };
+
+#endif // M3_DTO_ROUTE_SEGMENT_H

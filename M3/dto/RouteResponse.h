@@ -1,10 +1,10 @@
-#pragma once
+#ifndef M3_DTO_ROUTE_RESPONSE_H
+#define M3_DTO_ROUTE_RESPONSE_H
 
-#include "dto/RouteSegment.h"
-#include <string>
+#include "RouteSegment.h"
 #include <vector>
-#include <cstddef>
-#include <stdexcept>
+#include <string>
+#include <map>
 
 class RouteResponse {
 private:
@@ -13,26 +13,34 @@ private:
     double totalDistanceKm;
     std::vector<std::string> pathNodeIds;
     std::vector<RouteSegment> segments;
-    std::size_t nodesExplored;
+    int nodesExplored;
+    std::string algorithm;
+    std::map<std::string, double> travelTimeMinutes; // mode -> minutes
+    std::map<std::string, double> estimatedCost;     // mode -> rupees
 
 public:
     RouteResponse();
+    RouteResponse(const std::string& start,
+                  const std::string& end,
+                  double distance,
+                  const std::vector<std::string>& pathNodes,
+                  const std::vector<RouteSegment>& segs,
+                  int explored = 0,
+                  const std::string& algo = "Dijkstra (Min-Heap)");
 
-    RouteResponse(const std::string& startNodeId,
-                  const std::string& endNodeId,
-                  double totalDistanceKm,
-                  const std::vector<std::string>& pathNodeIds,
-                  const std::vector<RouteSegment>& segments,
-                  std::size_t nodesExplored);
+    const std::string& getStartNodeId() const { return startNodeId; }
+    const std::string& getEndNodeId() const { return endNodeId; }
+    double getTotalDistanceKm() const { return totalDistanceKm; }
+    const std::vector<std::string>& getPathNodeIds() const { return pathNodeIds; }
+    const std::vector<RouteSegment>& getSegments() const { return segments; }
+    int getNodesExplored() const { return nodesExplored; }
+    const std::string& getAlgorithm() const { return algorithm; }
 
-    const std::string& getStartNodeId() const;
-    const std::string& getEndNodeId() const;
-    double getTotalDistanceKm() const;
-    const std::vector<std::string>& getPathNodeIds() const;
-    const std::vector<RouteSegment>& getSegments() const;
-    std::size_t getNodesExplored() const;
+    void addTravelEstimate(const std::string& mode, double minutes, double cost);
+    const std::map<std::string, double>& getTravelTimes() const { return travelTimeMinutes; }
+    const std::map<std::string, double>& getEstimatedCosts() const { return estimatedCost; }
 
-    std::size_t segmentCount() const;
-
-    std::string toString() const;
+    std::string toJson() const;
 };
+
+#endif // M3_DTO_ROUTE_RESPONSE_H

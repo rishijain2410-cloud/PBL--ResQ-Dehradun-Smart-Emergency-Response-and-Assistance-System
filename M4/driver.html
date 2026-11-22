@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JEEVAN MARG &mdash; Driver Cockpit &amp; Dispatch Console</title>
+    <!-- Protocol File Guard & Cloud Mock Resilience -->
+    <script src="js/file-guard.js"></script>
+    <script src="js/cloud-mock.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/driver.css">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="driver-bg-gradient text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-900/90 border-b border-amber-500/30 sticky top-0 z-40 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-600 flex items-center justify-center text-white shadow-md shadow-amber-600/30">
+                    <i class="fa-solid fa-truck-medical text-lg"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-black text-base tracking-tight text-white">JEEVAN MARG</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-950 text-amber-300 border border-amber-700 uppercase">Driver Cockpit</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Emergency Vehicle Operations &bull; Dehradun</p>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex items-center space-x-3">
+                <span id="driver-vehicle-badge" class="px-2.5 py-1 rounded-lg text-xs font-mono font-black bg-slate-800 text-amber-400 border border-amber-500/40">
+                    AMB-00
+                </span>
+
+                <div class="text-right hidden md:block">
+                    <div id="driver-name-display" class="text-xs font-extrabold text-white">Driver Console</div>
+                    <div class="text-[11px] text-amber-400 font-medium">Active First Responder</div>
+                </div>
+
+                <a href="/index.html" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Control Room">
+                    <i class="fa-solid fa-map"></i>
+                </a>
+
+                <button onclick="Auth.logout()" class="px-3 py-1.5 rounded-xl bg-red-950/60 hover:bg-red-900 border border-red-500/40 text-red-200 text-xs font-bold transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-power-off text-xs"></i>
+                    <span class="hidden sm:inline">Logout</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 space-y-6">
+
+        <!-- ================================================================= -->
+        <!-- VEHICLE TELEMETRY & AVAILABILITY CONSOLE                          -->
+        <!-- ================================================================= -->
+        <section class="cockpit-card rounded-2xl p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-700/80">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                        <i class="fa-solid fa-van-shuttle"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-extrabold text-white">Assigned Vehicle Telemetry</h3>
+                        <p class="text-xs text-slate-400">SQLite synchronized ambulance unit status</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <span id="amb-status-badge" class="px-3 py-1 rounded-full text-xs font-black uppercase bg-emerald-950 text-emerald-300 border border-emerald-700">
+                        READY
+                    </span>
+                    <button id="toggle-avail-btn" onclick="toggleAmbulanceAvailability()" class="px-3 py-1.5 rounded-lg bg-amber-600/30 hover:bg-amber-600 text-amber-200 hover:text-white text-xs font-bold transition">
+                        SET TO MAINTENANCE
+                    </button>
+                </div>
+            </div>
+
+            <!-- Vehicle Specs Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                    <span class="text-[10px] text-slate-400 uppercase font-bold">Ambulance ID</span>
+                    <div id="amb-id-val" class="text-sm font-black text-white font-mono mt-0.5">-</div>
+                </div>
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                    <span class="text-[10px] text-slate-400 uppercase font-bold">Registration / Code</span>
+                    <div id="amb-code-val" class="text-sm font-black text-amber-400 font-mono mt-0.5">-</div>
+                </div>
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                    <span class="text-[10px] text-slate-400 uppercase font-bold">Vehicle Capability</span>
+                    <div id="amb-type-val" class="text-sm font-black text-purple-400 mt-0.5">ALS</div>
+                </div>
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                    <span class="text-[10px] text-slate-400 uppercase font-bold">Base Station</span>
+                    <div id="amb-station-val" class="text-sm font-bold text-slate-200 mt-0.5 truncate">-</div>
+                </div>
+            </div>
+
+            <!-- Live GPS Broadcasting Control Strip -->
+            <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center">
+                    <span id="gps-beacon-indicator" class="w-2.5 h-2.5 rounded-full bg-slate-500 mr-2"></span>
+                    <span id="gps-telemetry-text" class="text-xs text-slate-300 font-medium">GPS Location Broadcasting Standby</span>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button id="simulate-route-btn" onclick="toggleRouteSimulation()" class="px-3.5 py-1.5 rounded-lg bg-sky-600/30 hover:bg-sky-600 text-sky-300 hover:text-white text-xs font-bold transition flex items-center justify-center space-x-1.5 whitespace-nowrap" title="Simulate ambulance driving along computed Dijkstra shortest path">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Simulate Route Drive</span>
+                    </button>
+                    <button id="toggle-gps-btn" onclick="toggleGpsBroadcast()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white text-xs font-bold transition flex items-center justify-center space-x-1.5 whitespace-nowrap">
+                        <i class="fa-solid fa-satellite-dish"></i>
+                        <span>Start GPS Broadcasting</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- ACTIVE DISPATCH MISSION & NAVIGATION DUAL-PANEL                   -->
+        <!-- ================================================================= -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Left Panel: Active Mission Details & Progression Controls (5 cols) -->
+            <div class="lg:col-span-5 bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+
+                <!-- Standby State (Shown when no emergency is active) -->
+                <div id="mission-standby-view" class="py-12 text-center text-slate-400 flex flex-col items-center justify-center my-auto">
+                    <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-600 mb-3">
+                        <i class="fa-solid fa-shield-halved text-2xl text-emerald-500/50"></i>
+                    </div>
+                    <h4 class="font-extrabold text-white text-base">Ambulance in Standby Mode</h4>
+                    <p class="text-xs text-slate-400 mt-1 max-w-xs">
+                        Monitoring dispatch frequency. When an emergency is assigned by control or patient SOS, mission telemetry will appear here instantly.
+                    </p>
+                </div>
+
+                <!-- Active Mission State (Shown when emergency is assigned) -->
+                <div id="mission-active-view" class="hidden space-y-4">
+                    <div class="active-mission-banner p-3 rounded-xl bg-red-950/60 border-2 border-red-600 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-triangle-exclamation text-red-500 animate-pulse"></i>
+                            <span class="text-xs font-black text-white uppercase tracking-wider">ACTIVE EMERGENCY CALL</span>
+                            <span id="mission-em-id" class="font-mono text-amber-300 font-bold text-xs">-</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span id="mission-sev-badge" class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-red-900 text-red-200">CRITICAL</span>
+                            <span id="mission-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-300">DISPATCHED</span>
+                        </div>
+                    </div>
+
+                    <!-- Patient Pickup Card -->
+                    <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                            <i class="fa-solid fa-user-injured text-red-400 mr-1"></i> Patient Information
+                        </span>
+                        <div class="flex items-center justify-between">
+                            <h4 id="mission-patient-name" class="font-bold text-white text-sm">Emergency Patient</h4>
+                            <a id="mission-patient-phone" href="tel:108" class="px-2.5 py-1 rounded-lg bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white text-xs font-bold transition flex items-center space-x-1">
+                                <i class="fa-solid fa-phone text-[10px]"></i>
+                                <span>Call Patient</span>
+                            </a>
+                        </div>
+                        <div class="text-xs text-slate-300 mt-2">
+                            Pickup: <strong id="mission-location" class="text-amber-300">Clock Tower</strong>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1">
+                            Condition: <span id="mission-condition" class="text-slate-200">Severe chest pain</span>
+                        </div>
+                    </div>
+
+                    <!-- Destination Hospital Card -->
+                    <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                            <i class="fa-solid fa-hospital text-teal-400 mr-1"></i> Target Hospital Facility
+                        </span>
+                        <div class="flex items-center justify-between">
+                            <h4 id="mission-hosp-name" class="font-bold text-white text-sm">Hospital</h4>
+                            <a id="mission-hosp-phone" href="tel:108" class="px-2.5 py-1 rounded-lg bg-teal-600/30 hover:bg-teal-600 text-teal-300 hover:text-white text-xs font-bold transition flex items-center space-x-1">
+                                <i class="fa-solid fa-phone text-[10px]"></i>
+                                <span>Hospital Desk</span>
+                            </a>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1" id="mission-hosp-address">Dehradun</div>
+                    </div>
+
+                    <!-- Action Progression Controls Container -->
+                    <div class="pt-2">
+                        <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-2">Advance Mission Lifecycle:</span>
+                        <div id="mission-action-controls" class="space-y-2">
+                            <!-- Injected by driver.js -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Panel: Navigation Cockpit Map (7 cols) -->
+            <div class="lg:col-span-7 bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 shadow-xl flex flex-col">
+                <div class="flex items-center justify-between mb-3 px-2">
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center space-x-2">
+                        <i class="fa-solid fa-route text-amber-400"></i>
+                        <span>Dijkstra Shortest Road Navigation Route</span>
+                    </h3>
+                    <span class="text-[10px] text-slate-400 font-mono">Cockpit Map</span>
+                </div>
+                <div id="driver-map" class="w-full h-[450px] rounded-xl overflow-hidden border border-slate-700"></div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Common Helpers & Authentication -->
+    <script src="js/common.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/driver.js"></script>
+</body>
+</html>

@@ -1,948 +1,883 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JEEVANROUTE — Smart Emergency Response & Assistance System</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Google Fonts for professional typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>JEEVAN MARG &mdash; Smart Emergency Response &amp; Assistance System</title>
+    <!-- Protocol File Guard & Auth Entry Flow -->
+    <script src="js/file-guard.js"></script>
+    <script src="js/cloud-mock.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        (function() {
+            if (window.location.protocol === 'file:') return;
+            if (!window.Auth || !Auth.isLoggedIn()) {
+                window.location.replace('/login.html');
+                return;
+            }
+            var user = Auth.getUser();
+            if (!user || user.role !== 'ADMIN') {
+                if (user && user.role) {
+                    Auth.redirectForRole(user.role);
+                } else {
+                    window.location.replace('/login.html');
+                }
+            }
+        })();
+    </script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        emergency: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-    <div id="app" class="app-layout">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main Navigation">
-            <div class="sidebar-header">
-                <div class="brand-logo">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="logo-icon">
-                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-                        <path d="M12 5.5V19"/>
-                    </svg>
-                    <div class="brand-text">
-                        <h1>JEEVANROUTE</h1>
-                        <span>Dehradun Emergency</span>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 h-full flex flex-col transition-colors duration-300">
+
+    <!-- Demo Mode Banner (shown only on Netlify / non-localhost) -->
+    <div id="demo-banner" style="display:none" class="w-full bg-amber-400 text-amber-900 text-xs font-semibold text-center py-1.5 px-4 flex items-center justify-center space-x-2 z-50">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>🚀 <strong>Demo Mode</strong> — Running on Netlify. The C++ backend is simulated locally. All routing &amp; dispatch features use live-simulation data.</span>
+        <button onclick="document.getElementById('demo-banner').remove()" class="ml-4 text-amber-800 hover:text-amber-900 font-bold">✕</button>
+    </div>
+    <script>
+        if (!(location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+            document.getElementById('demo-banner').style.display = 'flex';
+        }
+    </script>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Main Navigation Header -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-emergency-600 flex items-center justify-center text-white shadow-md shadow-emergency-600/30">
+                    <i class="fa-solid fa-truck-medical text-lg"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight">JEEVAN MARG</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-300 uppercase">PBL GEU</span>
                     </div>
+                    <p class="text-[11px] text-slate-500 font-medium">Smart Emergency Response &amp; Healthcare Navigation</p>
                 </div>
             </div>
 
-            <nav class="sidebar-nav">
-                <button class="nav-item active" data-view="dashboard">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-                    <span>Dashboard</span>
-                </button>
-                <button class="nav-item" data-view="emergency">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                    <span>Emergency & SOS</span>
-                </button>
-                <button class="nav-item" data-view="ambulances">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 10H6"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.28a1 1 0 0 0-.684-.948l-1.923-.641a1 1 0 0 1-.393-.25l-2.5-2.5a1 1 0 0 0-.707-.293H14v8Z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
-                    <span>Ambulances & Services</span>
-                </button>
-                <button class="nav-item" data-view="hospitals">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v12"/><path d="M6 12h12"/><path d="M3 21h18"/></svg>
-                    <span>Hospital Finder</span>
-                </button>
-                <button class="nav-item" data-view="navigation">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
-                    <span>Navigation & Routes</span>
-                </button>
-                <button class="nav-item" data-view="contacts">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <span>Emergency Contacts</span>
-                </button>
-                <button class="nav-item" data-view="history">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
-                    <span>Request History</span>
-                </button>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="system-status">
-                    <span class="status-dot"></span>
-                    <div class="status-info">
-                        <strong>Demo System Online</strong>
-                        <span>Dehradun Grid v2.4</span>
-                    </div>
+            <!-- Header Action Controls -->
+            <div class="flex items-center space-x-3">
+                <!-- Location GPS Status -->
+                <div class="hidden lg:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="user-loc-text">Clock Tower, Dehradun</span>
                 </div>
+
+                <!-- Access Patient Live GPS Button -->
+                <button onclick="accessPatientRealTimeLocation()" class="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900 border border-purple-200 dark:border-purple-800 text-xs font-bold text-purple-700 dark:text-purple-300 transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-location-crosshairs text-purple-600 animate-pulse"></i>
+                    <span class="hidden sm:inline">Access Patient Live GPS</span>
+                    <span class="sm:hidden">Patient GPS</span>
+                </button>
+
+                <!-- Helplines Button -->
+                <button onclick="openHelplinesModal()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-phone text-emerald-600"></i>
+                    <span>Helplines</span>
+                </button>
+
+                <!-- Dark Mode Toggle -->
+                <button onclick="toggleDarkMode()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" title="Toggle Theme">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:inline"></i>
+                </button>
+
+                <!-- Auth Portal Button / User Pill -->
+                <div id="nav-auth-container" class="flex items-center">
+                    <a id="nav-auth-link" href="/login.html" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-user-lock text-emerald-600"></i>
+                        <span>Portals</span>
+                    </a>
+                </div>
+
+                <!-- Big Red Emergency SOS Panic Button -->
+                <button onclick="triggerEmergencySOS()" class="sos-pulse px-4 py-2 bg-emergency-600 hover:bg-emergency-700 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-emergency-600/40 transition flex items-center space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation fa-beat"></i>
+                    <span>PANIC SOS</span>
+                </button>
             </div>
-        </aside>
+        </div>
 
-        <!-- Main Content Wrapper -->
-        <div class="main-wrapper">
-            <!-- Top Navigation Bar -->
-            <header class="top-nav">
-                <div class="nav-left">
-                    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle Menu">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-                    </button>
-                    <h2 id="currentPageTitle">Dashboard</h2>
-                    <span class="badge badge-demo">DEMO MODE</span>
-                </div>
-                <div class="nav-right">
-                    <div class="datetime-display" id="datetimeDisplay">Loading...</div>
-                    <button class="btn-icon" id="notificationBtn" title="Notifications">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                        <span class="notification-badge" id="notificationCount">3</span>
-                    </button>
-                    <div class="operator-profile">
-                        <div class="avatar">OP</div>
-                        <div class="operator-info">
-                            <span class="name">Demo Operator</span>
-                            <span class="role">Dehradun Dispatcher</span>
-                        </div>
-                    </div>
-                    <button class="btn btn-outline btn-sm" id="resetDemoBtn" title="Reset all demo data to initial seed">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                        <span>Reset Data</span>
-                    </button>
-                </div>
-            </header>
+        <!-- Navigation Tabs Bar -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-100 dark:border-slate-800/80 flex space-x-8 overflow-x-auto">
+            <button id="tab-btn-dispatch" onclick="switchTab('dispatch')" class="tab-btn py-3 border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center space-x-2">
+                <i class="fa-solid fa-bell"></i>
+                <span>Emergency Dispatch (M1)</span>
+            </button>
+            <button id="tab-btn-hospitals" onclick="switchTab('hospitals')" class="tab-btn py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-semibold text-xs uppercase tracking-wider flex items-center space-x-2">
+                <i class="fa-solid fa-hospital"></i>
+                <span>Hospital Directory &amp; Beds (M2)</span>
+            </button>
+            <button id="tab-btn-navigation" onclick="switchTab('navigation')" class="tab-btn py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-semibold text-xs uppercase tracking-wider flex items-center space-x-2">
+                <i class="fa-solid fa-route"></i>
+                <span>Navigation &amp; Live Tracking (M3)</span>
+            </button>
+            <button id="tab-btn-triage" onclick="switchTab('triage')" class="tab-btn py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-semibold text-xs uppercase tracking-wider flex items-center space-x-2">
+                <i class="fa-solid fa-stethoscope"></i>
+                <span>Symptom Triage</span>
+            </button>
+            <button id="tab-btn-analytics" onclick="switchTab('analytics')" class="tab-btn py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-semibold text-xs uppercase tracking-wider flex items-center space-x-2">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>System Analytics</span>
+            </button>
+            <button id="tab-btn-admin" onclick="switchTab('admin')" class="tab-btn py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-semibold text-xs uppercase tracking-wider flex items-center space-x-2">
+                <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+                <span>Admin Console</span>
+            </button>
+            <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 my-auto"></div>
+            <a href="/patient.html" class="py-3 text-purple-600 dark:text-purple-400 hover:text-purple-700 font-bold text-xs uppercase tracking-wider flex items-center space-x-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-hospital-user"></i>
+                <span>Patient Portal</span>
+            </a>
+            <a href="/driver.html" class="py-3 text-amber-600 dark:text-amber-400 hover:text-amber-700 font-bold text-xs uppercase tracking-wider flex items-center space-x-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-truck-medical"></i>
+                <span>Driver Cockpit</span>
+            </a>
+            <a href="/hospital.html" class="py-3 text-teal-600 dark:text-teal-400 hover:text-teal-700 font-bold text-xs uppercase tracking-wider flex items-center space-x-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-hospital"></i>
+                <span>Hospital Console</span>
+            </a>
+        </div>
+    </header>
 
-            <!-- Main View Container -->
-            <main class="main-content">
-                <!-- VIEW 1: DASHBOARD -->
-                <section id="view-dashboard" class="view-section active">
-                    <div class="hero-banner">
-                        <div class="hero-text">
-                            <h2>Emergency Response Command Center</h2>
-                            <p>Monitor emergency requests, discover healthcare facilities and explore ambulance routes across Dehradun.</p>
-                        </div>
-                        <div class="hero-actions">
-                            <button class="btn btn-emergency btn-lg" onclick="app.switchView('emergency'); app.openCreateEmergencyModal();">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                                Create Emergency
-                            </button>
-                            <button class="btn btn-primary btn-lg" onclick="app.switchView('hospitals')">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v12"/><path d="M6 12h12"/><path d="M3 21h18"/></svg>
-                                Explore Hospitals
-                            </button>
-                        </div>
-                    </div>
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full overflow-y-auto">
 
-                    <!-- KPI Cards Grid -->
-                    <div class="kpi-grid">
-                        <div class="kpi-card">
-                            <div class="kpi-icon bg-blue">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                            </div>
-                            <div class="kpi-data">
-                                <span class="kpi-label">Total Requests</span>
-                                <h3 id="kpiTotalRequests">0</h3>
-                                <span class="kpi-trend positive">Active tracking</span>
-                            </div>
+        <!-- ========================================== -->
+        <!-- TAB 1: EMERGENCY DISPATCH (M1) -->
+        <!-- ========================================== -->
+        <div id="tab-content-dispatch" class="tab-content space-y-6">
+
+            <!-- Real-Time Patient Location Telemetry Panel -->
+            <div class="bg-gradient-to-r from-purple-900/10 via-indigo-900/10 to-blue-900/10 dark:from-purple-950/40 dark:to-slate-900 border border-purple-200 dark:border-purple-800/80 rounded-2xl p-5 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold text-lg">
+                            <i class="fa-solid fa-person-circle-exclamation"></i>
                         </div>
-                        <div class="kpi-card">
-                            <div class="kpi-icon bg-orange">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h3 class="font-extrabold text-sm text-slate-900 dark:text-white">Real-Time Patient Live GPS Monitor</h3>
+                                <span id="patient-tracking-status" class="px-2.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full text-[10px] font-bold uppercase">GPS READY</span>
                             </div>
-                            <div class="kpi-data">
-                                <span class="kpi-label">Pending / Active</span>
-                                <h3 id="kpiPendingRequests">0</h3>
-                                <span class="kpi-trend warning">Needs dispatch</span>
-                            </div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-icon bg-green">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 10H6"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
-                            </div>
-                            <div class="kpi-data">
-                                <span class="kpi-label">Available Ambulances</span>
-                                <h3 id="kpiAvailableAmbulances">0</h3>
-                                <span class="kpi-trend positive">Ready for dispatch</span>
-                            </div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-icon bg-purple">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-2"/></svg>
-                            </div>
-                            <div class="kpi-data">
-                                <span class="kpi-label">Hospitals in Dataset</span>
-                                <h3 id="kpiTotalHospitals">0</h3>
-                                <span class="kpi-trend">Dehradun region</span>
-                            </div>
+                            <p class="text-xs text-slate-500">Live coordinates, road network snapping, and continuous GPS telemetry stream</p>
                         </div>
                     </div>
 
-                    <!-- Quick SOS Banner -->
-                    <div class="sos-banner-card">
-                        <div class="sos-banner-content">
-                            <div class="sos-icon-pulse">🚨</div>
-                            <div>
-                                <h3>Emergency SOS Dispatcher</h3>
-                                <p>Immediate simulation trigger for critical incidents in Dehradun. Generates high-priority emergency request instantly.</p>
-                            </div>
-                        </div>
-                        <button class="btn btn-emergency btn-lg" onclick="app.triggerSOSModal()">
-                            TRIGGER SOS NOW
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="accessPatientRealTimeLocation()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm shadow-purple-600/30">
+                            <i class="fa-solid fa-crosshairs"></i>
+                            <span>Fetch Live GPS</span>
+                        </button>
+                        <button id="btn-continuous-tracking" onclick="togglePatientLiveTracking()" class="px-3 py-1.5 bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 hover:bg-purple-100 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border border-purple-200 dark:border-purple-800">
+                            <i class="fa-solid fa-satellite-dish text-purple-600"></i>
+                            <span>Continuous Live Tracking</span>
+                        </button>
+                        <button onclick="routeFromPatientGps()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm shadow-emerald-600/30">
+                            <i class="fa-solid fa-diamond-turn-right"></i>
+                            <span>Route Ambulance Here</span>
                         </button>
                     </div>
+                </div>
 
-                    <!-- Recent Requests Table & Quick Actions -->
-                    <div class="dashboard-grid">
-                        <div class="card main-table-card">
-                            <div class="card-header">
-                                <h3>Recent Emergency Requests</h3>
-                                <div class="card-actions">
-                                    <input type="text" id="dashSearchInput" placeholder="Search requests..." class="form-control form-control-sm" oninput="app.filterDashboardTable()">
-                                    <select id="dashPriorityFilter" class="form-control form-control-sm" onchange="app.filterDashboardTable()">
-                                        <option value="">All Priorities</option>
-                                        <option value="Critical">Critical</option>
-                                        <option value="High">High</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="Low">Low</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table" id="dashRequestsTable">
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Incident Type</th>
-                                            <th>Priority</th>
-                                            <th>Location</th>
-                                            <th>Assigned Service</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="dashRequestsBody">
-                                        <!-- Populated by JS -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Quick Action & System Stats Sidebar -->
-                        <div class="dashboard-sidebar">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3>M3 Navigation Status</h3>
-                                </div>
-                                <div class="card-body">
-                                    <div class="stat-row">
-                                        <span>Graph Vertices:</span>
-                                        <strong>20 nodes</strong>
-                                    </div>
-                                    <div class="stat-row">
-                                        <span>Road Edges:</span>
-                                        <strong>30 segments</strong>
-                                    </div>
-                                    <div class="stat-row">
-                                        <span>Demo Route:</span>
-                                        <strong>LOC-001 → LOC-011</strong>
-                                    </div>
-                                    <div class="stat-row">
-                                        <span>Primary Road:</span>
-                                        <strong>Court Road (0.45 km)</strong>
-                                    </div>
-                                    <div class="stat-row">
-                                        <span>Automated Tests:</span>
-                                        <strong class="text-success">296/296 Passed</strong>
-                                    </div>
-                                    <button class="btn btn-primary btn-block mt-3" onclick="app.switchView('navigation')">
-                                        Open Route Explorer
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="card mt-3">
-                                <div class="card-header">
-                                    <h3>Quick Healthcare Reach</h3>
-                                </div>
-                                <div class="card-body">
-                                    <p class="text-muted text-sm mb-3">Nearest to Clock Tower (LOC-001):</p>
-                                    <ul class="quick-facility-list">
-                                        <li>
-                                            <span>Doon Government Hospital</span>
-                                            <span class="badge badge-success">0.323 km</span>
-                                        </li>
-                                        <li>
-                                            <span>Apollo Clinic & Hospital</span>
-                                            <span class="badge badge-info">2.487 km</span>
-                                        </li>
-                                        <li>
-                                            <span>City Hospital Rajpur Road</span>
-                                            <span class="badge badge-info">3.315 km</span>
-                                        </li>
-                                    </ul>
-                                    <button class="btn btn-outline btn-block mt-3" onclick="app.switchView('hospitals')">
-                                        Browse All Hospitals
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                <!-- Live Telemetry Badges Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-purple-100 dark:border-purple-900/40">
+                    <div class="p-2.5 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-100 dark:border-slate-800">
+                        <span class="block text-[11px] text-slate-400 font-semibold">Live Latitude</span>
+                        <span id="patient-live-lat" class="font-extrabold text-sm text-purple-600 dark:text-purple-400">30.32440</span>
                     </div>
-                </section>
+                    <div class="p-2.5 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-100 dark:border-slate-800">
+                        <span class="block text-[11px] text-slate-400 font-semibold">Live Longitude</span>
+                        <span id="patient-live-lng" class="font-extrabold text-sm text-purple-600 dark:text-purple-400">78.04180</span>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-100 dark:border-slate-800">
+                        <span class="block text-[11px] text-slate-400 font-semibold">GPS Accuracy</span>
+                        <span id="patient-live-acc" class="font-extrabold text-sm text-emerald-600">&plusmn;5.0 m</span>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-100 dark:border-slate-800">
+                        <span class="block text-[11px] text-slate-400 font-semibold">Snapped Road Node</span>
+                        <span id="patient-live-node" class="font-extrabold text-xs text-slate-800 dark:text-slate-200 truncate block">Clock Tower (LOC-001)</span>
+                    </div>
+                </div>
+            </div>
 
-                <!-- VIEW 2: EMERGENCY & SOS -->
-                <section id="view-emergency" class="view-section">
-                    <div class="section-header">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Dispatch Form -->
+                <div class="lg:col-span-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                    <div class="flex items-center space-x-3 mb-5">
+                        <div class="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-bold">
+                            <i class="fa-solid fa-ambulance"></i>
+                        </div>
+                        <h3 class="font-bold text-base text-slate-900 dark:text-white">Quick Emergency Dispatch</h3>
+                    </div>
+
+                    <form id="ambulance-form" onsubmit="handleEmergencyDispatch(event)" class="space-y-4">
                         <div>
-                            <h2>Emergency & SOS Module</h2>
-                            <p>Create emergency requests, manage priorities, assign services, and track incident progression.</p>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Caller Name</label>
+                            <input id="amb-name" type="text" required placeholder="e.g. Ramesh Joshi" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         </div>
-                        <div class="header-actions">
-                            <button class="btn btn-emergency" onclick="app.openCreateEmergencyModal()">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                New Emergency Request
-                            </button>
-                            <button class="btn btn-emergency-outline" onclick="app.triggerSOSModal()">
-                                🚨 SOS Panic Trigger
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="card mb-4 filter-card">
-                        <div class="filter-row">
-                            <div class="search-box">
-                                <input type="text" id="emergencySearch" placeholder="Search by ID, type, location..." class="form-control" oninput="app.renderEmergencyList()">
-                            </div>
-                            <div class="filter-group">
-                                <select id="emergencyStatusFilter" class="form-control" onchange="app.renderEmergencyList()">
-                                    <option value="">All Statuses</option>
-                                    <option value="Pending">Pending</option>
-                                    <option value="Assigned">Assigned</option>
-                                    <option value="Accepted">Accepted</option>
-                                    <option value="En Route">En Route</option>
-                                    <option value="Completed">Completed</option>
-                                    <option value="Cancelled">Cancelled</option>
-                                </select>
-                                <select id="emergencyPriorityFilter" class="form-control" onchange="app.renderEmergencyList()">
-                                    <option value="">All Priorities</option>
-                                    <option value="Critical">Critical</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="table-responsive">
-                            <table class="table" id="fullEmergencyTable">
-                               <thead>
-                                    <tr>
-                                        <th>Request ID</th>
-                                        <th>Incident Type</th>
-                                        <th>Priority</th>
-                                        <th>Location & GPS</th>
-                                        <th>Required Service</th>
-                                        <th>Assigned Service</th>
-                                        <th>Status</th>
-                                        <th>Timestamp</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="fullEmergencyBody">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- VIEW 3: AMBULANCES & SERVICES -->
-                <section id="view-ambulances" class="view-section">
-                    <div class="section-header">
                         <div>
-                            <h2>Ambulances & Emergency Services</h2>
-                            <p>Inspect ambulance fleets, air ambulances, police checkpoints, and fire stations across Dehradun.</p>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Contact Phone</label>
+                            <input id="amb-phone" type="tel" required placeholder="+91 98765 43210" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         </div>
-                        <div class="header-actions">
-                            <button class="btn btn-primary" onclick="app.openAddServiceModal()">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                Add Demo Service
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="card mb-4 filter-card">
-                        <div class="filter-row">
-                            <div class="search-box">
-                                <input type="text" id="serviceSearchInput" placeholder="Search service name or ID..." class="form-control" oninput="app.renderServicesList()">
-                            </div>
-                            <div class="filter-group">
-                                <select id="serviceCategoryFilter" class="form-control" onchange="app.renderServicesList()">
-                                    <option value="">All Categories</option>
-                                    <option value="Ambulance">Ambulance</option>
-                                    <option value="Air Ambulance">Air Ambulance</option>
-                                    <option value="Police">Police</option>
-                                    <option value="Fire Service">Fire Service</option>
-                                </select>
-                                <select id="serviceAvailabilityFilter" class="form-control" onchange="app.renderServicesList()">
-                                    <option value="">All Availability</option>
-                                    <option value="Available">Available</option>
-                                    <option value="Assigned">Assigned</option>
-                                    <option value="Unavailable">Unavailable</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="services-grid" id="servicesGridContainer">
-                        <!-- Populated by JS -->
-                    </div>
-                </section>
-
-                <!-- VIEW 4: HOSPITAL FINDER -->
-                <section id="view-hospitals" class="view-section">
-                    <div class="section-header">
                         <div>
-                            <h2>Hospital Finder — M2 Module</h2>
-                            <p>Discover Dehradun healthcare facilities, departments, doctors, bed availability, and ratings.</p>
-                        </div>
-                        <div class="header-actions">
-                            <button class="btn btn-primary" onclick="app.resetHospitalFilters()">
-                                Reset Filters
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="card mb-4 filter-card">
-                        <div class="filter-row-advanced">
-                            <div class="search-box">
-                                <input type="text" id="hospitalSearchInput" placeholder="Search hospital name, location..." class="form-control" oninput="app.renderHospitalCatalog()">
-                            </div>
-                            <div class="filter-group">
-                                <select id="hospitalDeptFilter" class="form-control" onchange="app.renderHospitalCatalog()">
-                                    <option value="">All Departments</option>
-                                    <option value="Emergency & Trauma">Emergency & Trauma</option>
-                                    <option value="Cardiology">Cardiology</option>
-                                    <option value="Orthopedics">Orthopedics</option>
-                                    <option value="Pediatrics">Pediatrics</option>
-                                    <option value="Neurology">Neurology</option>
-                                </select>
-                                <select id="hospitalSortSelect" class="form-control" onchange="app.renderHospitalCatalog()">
-                                    <option value="name">Sort by Name</option>
-                                    <option value="rating">Sort by Rating</option>
-                                    <option value="beds">Sort by Available Beds</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="filter-pills-row mt-3">
-                            <span class="filter-label">Quick Services:</span>
-                            <button class="pill-btn active" data-service="" onclick="app.filterHospitalService('')">All</button>
-                            <button class="pill-btn" data-service="Trauma Center" onclick="app.filterHospitalService('Trauma Center')">Trauma Center</button>
-                            <button class="pill-btn" data-service="ICU" onclick="app.filterHospitalService('ICU')">ICU</button>
-                            <button class="pill-btn" data-service="Oxygen Support" onclick="app.filterHospitalService('Oxygen Support')">Oxygen Support</button>
-                            <button class="pill-btn" data-service="Blood Bank" onclick="app.filterHospitalService('Blood Bank')">Blood Bank</button>
-                            <button class="pill-btn" data-service="Helipad" onclick="app.filterHospitalService('Helipad')">Helipad</button>
-                        </div>
-                    </div>
-
-                    <div class="results-count-bar">
-                        <span id="hospitalCountText">Showing matching hospitals</span>
-                    </div>
-
-                    <div class="hospitals-grid" id="hospitalsGridContainer">
-                        <!-- Populated by JS -->
-                    </div>
-                </section>
-
-                <!-- VIEW 5: NAVIGATION & ROUTES -->
-                <section id="view-navigation" class="view-section">
-                    <div class="section-header">
-                        <div>
-                            <h2>Navigation & Routes — M3 Module</h2>
-                            <p>Explore C++17 road-network graph, Dijkstra's shortest-path algorithm, road segments, and Dehradun locations.</p>
-                        </div>
-                    </div>
-
-                    <!-- Navigation Dashboard Grid -->
-                    <div class="nav-dashboard-grid">
-                        <!-- Route Planner Card -->
-                        <div class="card route-planner-card">
-                            <div class="card-header">
-                                <h3>Dijkstra Route Calculator</h3>
-                                <span class="badge badge-primary">C++17 Graph Engine</span>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label for="routeStartSelect">Start Location</label>
-                                    <select id="routeStartSelect" class="form-control">
-                                        <!-- Populated from locations -->
-                                    </select>
-                                </div>
-                                <div class="route-swap-container">
-                                    <button class="btn-icon-round" onclick="app.swapRouteLocations()" title="Swap Start and Destination">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"/></svg>
-                                    </button>
-                                </div>
-                                <div class="form-group">
-                                    <label for="routeDestSelect">Destination Location</label>
-                                    <select id="routeDestSelect" class="form-control">
-                                        <!-- Populated from locations -->
-                                    </select>
-                                </div>
-
-                                <div class="preset-route-buttons mb-3">
-                                    <span class="text-sm text-muted">Preset Demo Route:</span>
-                                    <button class="btn btn-outline btn-xs" onclick="app.loadPresetRoute('LOC-001', 'LOC-011')">Clock Tower → Doon Hospital (0.45 km)</button>
-                                </div>
-
-                                <div class="btn-group-full">
-                                    <button class="btn btn-primary" onclick="app.calculateRoute()">
-                                        Calculate Shortest Route
-                                    </button>
-                                    <button class="btn btn-outline" onclick="app.clearRoute()">
-                                        Clear Route
-                                    </button>
-                                </div>
-
-                                <!-- Route Result Summary Box -->
-                                <div id="routeResultContainer" class="route-result-box mt-4 hidden">
-                                    <h4>Route Summary</h4>
-                                    <div class="route-metric-grid">
-                                        <div class="metric-item">
-                                            <span>Algorithm</span>
-                                            <strong>Dijkstra Shortest Path</strong>
-                                        </div>
-                                        <div class="metric-item">
-                                            <span>Total Distance</span>
-                                            <strong id="routeDistVal" class="text-primary">0.00 km</strong>
-                                        </div>
-                                        <div class="metric-item">
-                                            <span>Route Path</span>
-                                            <strong id="routePathVal">-</strong>
-                                        </div>
-                                        <div class="metric-item">
-                                            <span>Est. Ambulance ETA</span>
-                                            <strong id="routeEtaVal">-</strong>
-                                        </div>
-                                    </div>
-
-                                    <h5 class="mt-3">Road Segments</h5>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm" id="routeSegmentsTable">
-                                            <thead>
-                                                <tr>
-                                                    <th>From</th>
-                                                    <th>To</th>
-                                                    <th>Road Name</th>
-                                                    <th>Dist</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="routeSegmentsBody"></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- SVG Road Network Schematic Card -->
-                        <div class="card network-schematic-card">
-                            <div class="card-header">
-                                <h3>Dehradun Road-Network Schematic</h3>
-                                <span class="text-sm text-muted">20 Vertices • 30 Edges</span>
-                            </div>
-                            <div class="card-body">
-                                <div class="schematic-container">
-                                    <svg id="networkSvg" viewBox="0 0 600 450" width="100%" height="100%">
-                                        <!-- Background grid/styling -->
-                                        <defs>
-                                            <radialGradient id="nodeGrad" cx="50%" cy="50%" r="50%">
-                                                <stop offset="0%" stop-color="#2878D0" />
-                                                <stop offset="100%" stop-color="#10243A" />
-                                            </radialGradient>
-                                            <radialGradient id="activeNodeGrad" cx="50%" cy="50%" r="50%">
-                                                <stop offset="0%" stop-color="#E63946" />
-                                                <stop offset="100%" stop-color="#C92A36" />
-                                            </radialGradient>
-                                        </defs>
-                                        <g id="svgEdges"></g>
-                                        <g id="svgNodes"></g>
-                                    </svg>
-                                </div>
-                                <div class="schematic-footer">
-                                    <span class="legend-item"><span class="dot bg-blue"></span> Location Node</span>
-                                    <span class="legend-item"><span class="dot bg-emergency"></span> Active Start/Dest</span>
-                                    <span class="legend-item"><span class="line bg-navigation"></span> Road Segment</span>
-                                    <p class="text-muted text-xs mt-2">Illustrative road-network visualization — not a live geographic map.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Nearby Services Finder Sub-section -->
-                    <div class="card mt-4">
-                        <div class="card-header">
-                            <h3>Nearby Services Finder (Haversine Distance Calculator)</h3>
-                            <span class="badge badge-info">Spatial Radius Search</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="nearby-search-controls">
-                                <div class="form-group">
-                                    <label for="nearbyLocationSelect">Reference Location</label>
-                                    <select id="nearbyLocationSelect" class="form-control" onchange="app.fillNearbyCoords()">
-                                        <!-- Populated by JS -->
-                                    </select>
-                                </div>
-                                <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label for="nearbyLat">Latitude (°N)</label>
-                                        <input type="number" step="0.0001" id="nearbyLat" class="form-control" placeholder="30.3165">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="nearbyLng">Longitude (°E)</label>
-                                        <input type="number" step="0.0001" id="nearbyLng" class="form-control" placeholder="78.0322">
-                                    </div>
-                                </div>
-                                <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label for="nearbyRadius">Radius (km)</label>
-                                        <input type="number" step="0.5" min="0.5" max="50" id="nearbyRadius" class="form-control" value="5.0">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="nearbyCategory">Category</label>
-                                        <select id="nearbyCategory" class="form-control">
-                                            <option value="All">All Categories</option>
-                                            <option value="Hospitals">Hospitals</option>
-                                            <option value="Emergency Services">Emergency Services</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <button class="btn btn-primary btn-block" onclick="app.searchNearbyServices()">
-                                    Find Nearby Services
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300">Emergency Location</label>
+                                <button type="button" onclick="accessPatientRealTimeLocation()" class="text-[11px] text-purple-600 dark:text-purple-400 hover:underline font-bold flex items-center space-x-1">
+                                    <i class="fa-solid fa-crosshairs"></i>
+                                    <span>Use Patient Live GPS</span>
                                 </button>
                             </div>
-
-                            <!-- Nearby Results Table -->
-                            <div class="nearby-results-container mt-4" id="nearbyResultsContainer">
-                                <h5>Search Results <span id="nearbyResultCount" class="badge badge-info">0 found</span></h5>
-                                <div class="table-responsive mt-2">
-                                    <table class="table" id="nearbyResultsTable">
-                                        <thead>
-                                            <tr>
-                                                <th>Facility Name</th>
-                                                <th>Category</th>
-                                                <th>Coordinates</th>
-                                                <th>Distance (km)</th>
-                                                <th>Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="nearbyResultsBody">
-                                            <tr><td colspan="5" class="text-center text-muted">Select location and run search.</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                            <input id="amb-location" type="text" required placeholder="e.g. Near Clock Tower / ISBT Dehradun" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         </div>
-                    </div>
-
-                    <!-- Ambulance ETA & Speed Panel -->
-                    <div class="card mt-4">
-                        <div class="card-header">
-                            <h3>Ambulance ETA & Travel Time Estimation</h3>
-                            <span class="badge badge-warning">Configurable Speed Model</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="eta-panel-grid">
-                                <div class="eta-control-box">
-                                    <div class="form-group">
-                                        <label for="ambulanceSpeedInput">Assumed Average Ambulance Speed (km/h)</label>
-                                        <input type="number" id="ambulanceSpeedInput" class="form-control" value="40" min="10" max="100" onchange="app.updateEtaCalculation()">
-                                    </div>
-                                    <p class="text-muted text-sm">
-                                        Illustrative ETA — based on assumed speed, not live traffic. Actual arrival time depends on traffic, road conditions, and dispatch delays.
-                                    </p>
-                                </div>
-                                <div class="eta-display-box">
-                                    <div class="eta-stat">
-                                        <span>Calculated Distance:</span>
-                                        <strong id="etaDistDisplay">0.00 km</strong>
-                                    </div>
-                                    <div class="eta-stat">
-                                        <span>Estimated Travel Time:</span>
-                                        <strong id="etaTimeDisplay" class="text-primary">0 mins</strong>
-                                    </div>
-                                    <div class="eta-stat">
-                                        <span>Estimated Arrival Clock:</span>
-                                        <strong id="etaClockDisplay">--:--</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- VIEW 6: EMERGENCY CONTACTS -->
-                <section id="view-contacts" class="view-section">
-                    <div class="section-header">
-                        <div>
-                            <h2>Emergency Contacts Directory</h2>
-                            <p>Maintain critical personnel, hospitals, and emergency hotline contacts for Dehradun.</p>
-                        </div>
-                        <div class="header-actions">
-                            <button class="btn btn-primary" onclick="app.openAddContactModal()">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                Add Contact
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="card mb-4 filter-card">
-                        <div class="search-box">
-                            <input type="text" id="contactSearchInput" placeholder="Search contact name, category, phone..." class="form-control" oninput="app.renderContactsList()">
-                        </div>
-                    </div>
-
-                    <div class="contacts-grid" id="contactsGridContainer">
-                        <!-- Populated by JS -->
-                    </div>
-                </section>
-
-                <!-- VIEW 7: REQUEST HISTORY -->
-                <section id="view-history" class="view-section">
-                    <div class="section-header">
-                        <div>
-                            <h2>Emergency Request History & Timeline</h2>
-                            <p>Auditable log of all emergency requests, service dispatches, and status progressions.</p>
-                        </div>
-                        <div class="header-actions">
-                            <button class="btn btn-outline" onclick="app.exportHistoryCSV()">
-                                Export Log
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="card mb-4 filter-card">
-                        <div class="filter-row">
-                            <div class="search-box">
-                                <input type="text" id="historySearchInput" placeholder="Search history ID, type..." class="form-control" oninput="app.renderHistoryList()">
-                            </div>
-                            <div class="filter-group">
-                                <select id="historyStatusFilter" class="form-control" onchange="app.renderHistoryList()">
-                                    <option value="">All Statuses</option>
-                                    <option value="Pending">Pending</option>
-                                    <option value="Assigned">Assigned</option>
-                                    <option value="Accepted">Accepted</option>
-                                    <option value="En Route">En Route</option>
-                                    <option value="Completed">Completed</option>
-                                    <option value="Cancelled">Cancelled</option>
-                                </select>
-                                <select id="historyPriorityFilter" class="form-control" onchange="app.renderHistoryList()">
-                                    <option value="">All Priorities</option>
-                                    <option value="Critical">Critical</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Severity</label>
+                                <select id="amb-severity" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none">
+                                    <option value="CRITICAL">CRITICAL (ALS)</option>
+                                    <option value="HIGH" selected>HIGH (Trauma)</option>
+                                    <option value="MEDIUM">MEDIUM</option>
+                                    <option value="LOW">LOW (Transfer)</option>
                                 </select>
                             </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Condition</label>
+                                <input id="amb-condition" type="text" placeholder="e.g. Cardiac / Accident" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none">
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="card">
-                        <div class="table-responsive">
-                            <table class="table" id="historyTable">
-                               <thead>
-                                    <tr>
-                                        <th>Request ID</th>
-                                        <th>Incident Type</th>
-                                        <th>Priority</th>
-                                        <th>Location</th>
-                                        <th>Assigned Service</th>
-                                        <th>Final Status</th>
-                                        <th>Timestamp</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="historyTableBody">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-            </main>
-        </div>
-    </div>
-
-    <!-- MODALS CONTAINER -->
-    <!-- 1. Emergency Request Modal -->
-    <div class="modal-overlay" id="emergencyModal">
-        <div class="modal-dialog">
-            <div class="modal-header">
-                <h3 id="emergencyModalTitle">Create Emergency Request</h3>
-                <button class="modal-close" onclick="app.closeModal('emergencyModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="emergencyForm" onsubmit="app.handleEmergencySubmit(event)">
-                    <div class="form-group">
-                        <label for="modalIncidentType">Incident Type *</label>
-                        <select id="modalIncidentType" class="form-control" required>
-                            <option value="Medical Emergency">Medical Emergency</option>
-                            <option value="Road Accident">Road Accident</option>
-                            <option value="Fire">Fire</option>
-                            <option value="Other Emergency">Other Emergency</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="modalDescription">Description / Notes *</label>
-                        <textarea id="modalDescription" class="form-control" rows="3" placeholder="Describe nature of emergency..." required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="modalLocationSelect">Predefined Demo Location</label>
-                        <select id="modalLocationSelect" class="form-control" onchange="app.fillLocationCoords()">
-                            <!-- Populated by JS -->
-                        </select>
-                    </div>
-                    <div class="form-row-2">
-                        <div class="form-group">
-                            <label for="modalLat">Latitude (-90 to 90) *</label>
-                            <input type="number" step="0.0001" min="-90" max="90" id="modalLat" class="form-control" value="30.3165" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="modalLng">Longitude (-180 to 180) *</label>
-                            <input type="number" step="0.0001" min="-180" max="180" id="modalLng" class="form-control" value="78.0322" required>
-                        </div>
-                    </div>
-                    <div class="form-row-2">
-                        <div class="form-group">
-                            <label for="modalPriority">Priority *</label>
-                            <select id="modalPriority" class="form-control" required>
-                                <option value="Critical">Critical</option>
-                                <option value="High">High</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Low">Low</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="modalServiceType">Required Service *</label>
-                            <select id="modalServiceType" class="form-control" required>
-                                <option value="Ambulance">Ambulance</option>
-                                <option value="Air Ambulance">Air Ambulance</option>
-                                <option value="Police">Police</option>
-                                <option value="Fire Service">Fire Service</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="modalContact">Contact Info / Phone *</label>
-                        <input type="text" id="modalContact" class="form-control" placeholder="+91 98765 43210" required>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline" onclick="app.closeModal('emergencyModal')">Cancel</button>
-                        <button type="submit" class="btn btn-emergency">Submit Emergency Request</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- 2. SOS Confirmation Modal -->
-    <div class="modal-overlay" id="sosModal">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-header bg-emergency text-white">
-                <h3>🚨 SOS Panic Dispatch Trigger</h3>
-                <button class="modal-close text-white" onclick="app.closeModal('sosModal')">&times;</button>
-            </div>
-            <div class="modal-body text-center">
-                <div class="sos-modal-icon">⚠️</div>
-                <h4>Confirm Emergency SOS Activation</h4>
-                <p class="text-muted text-sm my-3">
-                    This action will generate a <strong>Critical Priority Medical Emergency</strong> at Clock Tower (LOC-001) and immediately attempt to dispatch the nearest available ambulance.
-                </p>
-                <div class="alert alert-warning text-xs text-left mb-3">
-                    <strong>DEMO MODE:</strong> No real emergency services are contacted. This is a simulation.
+                        <button type="submit" class="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-red-600/30 flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>DISPATCH AMBULANCE</span>
+                        </button>
+                    </form>
                 </div>
-                <div class="modal-footer justify-center">
-                    <button type="button" class="btn btn-outline" onclick="app.closeModal('sosModal')">Cancel</button>
-                    <button type="button" class="btn btn-emergency" onclick="app.executeSOSDispatch()">CONFIRM & DISPATCH</button>
+
+                <!-- Active Emergency Queue -->
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center space-x-2">
+                            <span>Active Dispatches &amp; Emergency Fleet</span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                        </h3>
+                        <span class="text-xs text-slate-500">Integrated with 108 Emergency Protocol</span>
+                    </div>
+
+                    <div id="dispatch-status-container" class="space-y-3">
+                        <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                                    <i class="fa-solid fa-truck-medical"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-sm">Unit #DHN-108-04 (ALS)</h4>
+                                    <p class="text-xs text-slate-500">Stationed near Clock Tower, Dehradun &bull; Ready for Call</p>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 rounded-lg text-xs font-bold">READY</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 3. Assign Service Modal -->
-    <div class="modal-overlay" id="assignServiceModal">
-        <div class="modal-dialog">
-            <div class="modal-header">
-                <h3>Assign Emergency Service</h3>
-                <button class="modal-close" onclick="app.closeModal('assignServiceModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="assignRequestId">
-                <p id="assignRequestSummary" class="text-muted text-sm mb-3"></p>
-                <div class="form-group">
-                    <label for="selectServiceDropdown">Select Available Service *</label>
-                    <select id="selectServiceDropdown" class="form-control" required>
-                        <!-- Populated by JS -->
+        <!-- ========================================== -->
+        <!-- TAB 2: HOSPITAL DIRECTORY & BEDS (M2) -->
+        <!-- ========================================== -->
+        <div id="tab-content-hospitals" class="tab-content hidden space-y-6">
+            <!-- Search & Filters -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div class="relative flex-1 w-full">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <input id="hospital-search" oninput="loadHospitalGrid()" type="text" placeholder="Search hospital name or Dehradun locality (e.g. Max, Malsi, Patel Nagar)..." class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div class="flex items-center space-x-3 w-full md:w-auto">
+                    <select id="specialty-filter" onchange="loadHospitalGrid()" class="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none">
+                        <option value="all">All Specialties</option>
+                        <option value="Cardiology">Cardiology</option>
+                        <option value="Trauma & Emergency">Trauma &amp; Emergency</option>
+                        <option value="Neurology">Neurology</option>
+                        <option value="Orthopedics">Orthopedics</option>
+                        <option value="General Care">General Care</option>
                     </select>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline" onclick="app.closeModal('assignServiceModal')">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="app.confirmServiceAssignment()">Confirm Assignment</button>
+            </div>
+
+            <!-- Hospital Grid -->
+            <div id="hospital-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: NAVIGATION & LIVE TRACKING (M3) -->
+        <!-- ========================================== -->
+        <div id="tab-content-navigation" class="tab-content hidden space-y-6">
+            <!-- Routing Control Bar -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300">Origin Location</label>
+                            <button type="button" onclick="routeFromPatientGps()" class="text-[11px] text-purple-600 dark:text-purple-400 hover:underline font-bold flex items-center space-x-1">
+                                <i class="fa-solid fa-crosshairs"></i>
+                                <span>Use Patient GPS</span>
+                            </button>
+                        </div>
+                        <select id="nav-origin-select" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Destination Hospital</label>
+                        <select id="nav-dest-select" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none"></select>
+                    </div>
+                    <div>
+                        <button onclick="executeDijkstraRouting()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-calculator"></i>
+                            <span>Compute Dijkstra Route</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Patient Real-Time GPS Status Strip -->
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between text-xs gap-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse"></span>
+                        <span class="font-bold text-slate-700 dark:text-slate-300">Patient Live GPS:</span>
+                        <span id="nav-patient-coords-preview" class="text-purple-600 dark:text-purple-400 font-mono font-bold">30.32440, 78.04180</span>
+                        <span class="text-slate-400 text-[11px]">(Snapped to Clock Tower LOC-001)</span>
+                    </div>
+                    <button onclick="routeFromPatientGps()" class="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1 shadow-sm">
+                        <i class="fa-solid fa-location-crosshairs"></i>
+                        <span>Route Directly from Patient GPS</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Map & Directions Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Interactive Leaflet Map -->
+                <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 shadow-sm h-[520px] flex flex-col">
+                    <div class="flex items-center justify-between px-2 pb-2">
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-map-location-dot text-emerald-600"></i>
+                            <span>Dehradun Interactive GIS Network Map (20 Nodes &bull; 31 Road Edges)</span>
+                        </span>
+                        <div class="flex items-center space-x-3 text-[11px] font-semibold text-slate-500">
+                            <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block"></span><span>Patient GPS</span></span>
+                            <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span><span>Hospital</span></span>
+                            <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span><span>Incident</span></span>
+                            <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span><span>Ambulance</span></span>
+                        </div>
+                    </div>
+                    <div id="leaflet-map" class="flex-1 rounded-xl"></div>
+                </div>
+
+                <!-- Navigation Details & Turn-by-Turn Panel -->
+                <div class="lg:col-span-1 space-y-4">
+                    <!-- Route Summary Card -->
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Shortest Path</span>
+                            <span id="nav-algo-text" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Dijkstra (Min-Heap)</span>
+                        </div>
+                        <div class="flex items-baseline space-x-2">
+                            <span id="nav-distance-text" class="text-2xl font-extrabold text-slate-900 dark:text-white">-- km</span>
+                            <span class="text-xs text-slate-500">Total Road Distance</span>
+                        </div>
+
+                        <!-- Live Tracking Status -->
+                        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                                <span class="text-xs font-bold">Live Tracking:</span>
+                            </div>
+                            <span id="tracking-status-pill" class="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-[11px] font-bold">READY</span>
+                        </div>
+                        <p id="tracking-eta-live" class="text-xs font-bold text-emerald-600">Click Compute to simulate ambulance</p>
+                    </div>
+
+                    <!-- Multi-Modal Estimates -->
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm space-y-2">
+                        <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Multi-Modal Travel Time &amp; Cost</h4>
+                        <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                            <span class="flex items-center space-x-2"><i class="fa-solid fa-truck-medical text-red-500"></i><span>Ambulance</span></span>
+                            <span id="eta-ambulance" class="font-bold text-slate-900 dark:text-white">--</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                            <span class="flex items-center space-x-2"><i class="fa-solid fa-motorcycle text-blue-500"></i><span>Two-Wheeler</span></span>
+                            <span id="eta-bike" class="font-bold text-slate-900 dark:text-white">--</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                            <span class="flex items-center space-x-2"><i class="fa-solid fa-bus text-amber-500"></i><span>Public Bus</span></span>
+                            <span id="eta-bus" class="font-bold text-slate-900 dark:text-white">--</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                            <span class="flex items-center space-x-2"><i class="fa-solid fa-person-walking text-slate-500"></i><span>Walking</span></span>
+                            <span id="eta-walk" class="font-bold text-slate-900 dark:text-white">--</span>
+                        </div>
+                    </div>
+
+                    <!-- Turn-by-Turn Directions -->
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm space-y-3">
+                        <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300">Turn-by-turn Route Segments</h4>
+                        <div id="turn-by-turn-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            <p class="text-xs text-slate-400 text-center py-4">Compute a route to view step-by-step road instructions.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 4. Hospital Details Modal -->
-    <div class="modal-overlay" id="hospitalModal">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-header">
-                <h3 id="hModalName">Hospital Details</h3>
-                <button class="modal-close" onclick="app.closeModal('hospitalModal')">&times;</button>
+        <!-- ========================================== -->
+        <!-- TAB 4: SYMPTOM TRIAGE ASSESSOR -->
+        <!-- ========================================== -->
+        <div id="tab-content-triage" class="tab-content hidden space-y-6">
+            <div class="max-w-3xl mx-auto space-y-6">
+                <div class="text-center space-y-2">
+                    <h3 class="text-xl font-extrabold text-slate-900 dark:text-white">Emergency Symptom &amp; Triage Assessor</h3>
+                    <p class="text-xs text-slate-500">Select reported condition to evaluate clinical urgency and route to the best equipped hospital in Dehradun.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div onclick="runTriageAssessment('cardiac')" class="cursor-pointer p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-500 shadow-sm transition space-y-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-heart-pulse"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm">Chest Pain / Cardiac Arrest</h4>
+                                <span class="text-[10px] text-red-600 font-bold uppercase">CRITICAL PRIORITY</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500">Severe crushing chest pressure, left arm radiating pain, sudden collapse.</p>
+                    </div>
+
+                    <div onclick="runTriageAssessment('trauma')" class="cursor-pointer p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 shadow-sm transition space-y-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-car-burst"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm">Accident / Severe Trauma</h4>
+                                <span class="text-[10px] text-amber-600 font-bold uppercase">HIGH PRIORITY</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500">Road traffic accidents, heavy arterial hemorrhage, fracture, head impact.</p>
+                    </div>
+
+                    <div onclick="runTriageAssessment('respiratory')" class="cursor-pointer p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500 shadow-sm transition space-y-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-lungs"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm">Severe Breathing Distress</h4>
+                                <span class="text-[10px] text-blue-600 font-bold uppercase">HIGH PRIORITY</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500">Acute asthma, SpO2 drop below 90%, choking, respiratory exhaustion.</p>
+                    </div>
+
+                    <div onclick="runTriageAssessment('stroke')" class="cursor-pointer p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-500 shadow-sm transition space-y-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-brain"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm">Acute Stroke Symptoms (FAST)</h4>
+                                <span class="text-[10px] text-purple-600 font-bold uppercase">CRITICAL PRIORITY</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500">Facial droop, arm weakness, slurred speech (4.5h golden window).</p>
+                    </div>
+                </div>
+
+                <!-- Triage Result Card -->
+                <div id="triage-result" class="hidden p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h4 id="triage-title" class="font-extrabold text-sm text-emerald-900 dark:text-emerald-100"></h4>
+                        <span id="triage-spec" class="px-2.5 py-1 bg-emerald-200 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300 rounded-lg text-xs font-bold"></span>
+                    </div>
+                    <p id="triage-desc" class="text-xs text-emerald-800 dark:text-emerald-300"></p>
+                    <button id="triage-action-btn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-2">
+                        <i class="fa-solid fa-diamond-turn-right"></i>
+                        <span>Navigate to Recommended Hospital Now</span>
+                    </button>
+                </div>
             </div>
-            <div class="modal-body" id="hModalBody">
-                <!-- Populated by JS -->
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 5: SYSTEM ANALYTICS -->
+        <!-- ========================================== -->
+        <div id="tab-content-analytics" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 font-semibold">Average Response Time</span>
+                    <h3 class="text-2xl font-extrabold text-emerald-600 mt-1">8.4 mins</h3>
+                    <span class="text-[11px] text-slate-400">Dehradun Municipal Zone</span>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 font-semibold">Active Fleet Units</span>
+                    <h3 class="text-2xl font-extrabold text-blue-600 mt-1">4 / 4 Units</h3>
+                    <span class="text-[11px] text-slate-400">ALS &amp; BLS Ambulances</span>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 font-semibold">Hospital Network</span>
+                    <h3 class="text-2xl font-extrabold text-purple-600 mt-1">6 Hospitals</h3>
+                    <span class="text-[11px] text-slate-400">Total ICU Beds: 323</span>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 font-semibold">Road Graph Nodes</span>
+                    <h3 class="text-2xl font-extrabold text-amber-600 mt-1">20 Vertices</h3>
+                    <span class="text-[11px] text-slate-400">31 Connected Roads</span>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline" onclick="app.closeModal('hospitalModal')">Close</button>
-                <button type="button" class="btn btn-primary" id="hModalRouteBtn" onclick="app.routeToHospitalFromModal()">Use as Destination</button>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-3">
+                    <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300">Emergency Response Time Trend (Today)</h4>
+                    <div class="h-64">
+                        <canvas id="response-time-chart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-3">
+                    <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300">Hospital ICU Bed Availability vs Occupancy</h4>
+                    <div class="h-64">
+                        <canvas id="bed-utilization-chart"></canvas>
+                    </div>
+                </div>
             </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 6: ADMIN CONSOLE & RBAC CONTROL -->
+        <!-- ========================================== -->
+        <div id="tab-content-admin" class="tab-content hidden space-y-6">
+            <!-- Admin Header Banner -->
+            <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 border border-slate-700/80 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-2xl font-bold">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h2 class="text-xl font-extrabold tracking-tight">Central Control Room &amp; RBAC Console</h2>
+                            <span class="px-2.5 py-0.5 rounded text-[10px] font-black bg-emerald-950 text-emerald-300 border border-emerald-800 uppercase">System Admin</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">Multi-Role User Provisioning, Real-Time Fleet Control &amp; Clinical Capacity Monitor</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button onclick="refreshAdminData()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition flex items-center space-x-1.5 border border-slate-700">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>Refresh All Records</span>
+                    </button>
+                    <button onclick="resetDemoData()" class="px-3 py-1.5 rounded-xl bg-red-950/80 hover:bg-red-900 text-xs font-bold text-red-200 transition flex items-center space-x-1.5 border border-red-800" title="Clear all emergencies and restore initial demo state">
+                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                        <span>Reset Demo Data</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4 Admin Stat Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Registered Accounts</span>
+                    <div id="admin-stat-users" class="text-2xl font-black text-slate-900 dark:text-white mt-1">-</div>
+                    <span class="text-[10px] text-slate-400">Patients, Drivers, Hospitals</span>
+                </div>
+                <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Emergency Incidents</span>
+                    <div id="admin-stat-emergencies" class="text-2xl font-black text-red-600 mt-1">-</div>
+                    <span class="text-[10px] text-slate-400">Logged in SQLite</span>
+                </div>
+                <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Fleet Ambulances</span>
+                    <div id="admin-stat-ambulances" class="text-2xl font-black text-amber-500 mt-1">-</div>
+                    <span class="text-[10px] text-slate-400">ALS &amp; BLS Units</span>
+                </div>
+                <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Available ICU Beds</span>
+                    <div id="admin-stat-icu" class="text-2xl font-black text-emerald-600 mt-1">-</div>
+                    <span class="text-[10px] text-slate-400">Across 6 Dehradun Facilities</span>
+                </div>
+            </div>
+
+            <!-- Section 1: User & RBAC Management -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-users-gear text-emerald-600 text-lg"></i>
+                        <h3 class="font-extrabold text-base text-slate-900 dark:text-white">User Accounts &amp; Role-Based Access Control</h3>
+                    </div>
+                    <span class="text-xs text-slate-500">PBKDF2 SHA-256 Hashed &bull; Protected SQLite Database</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="text-slate-400 uppercase font-bold border-b border-slate-100 dark:border-slate-800 text-[10px]">
+                                <th class="py-2.5 px-3">UID</th>
+                                <th class="py-2.5 px-3">Username</th>
+                                <th class="py-2.5 px-3">Display Name</th>
+                                <th class="py-2.5 px-3">Role</th>
+                                <th class="py-2.5 px-3">Phone</th>
+                                <th class="py-2.5 px-3">Linked Resource</th>
+                                <th class="py-2.5 px-3">Status</th>
+                                <th class="py-2.5 px-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-users-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                            <tr><td colspan="8" class="text-center py-4 text-slate-400">Loading users from backend...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Account Provisioning Forms (Driver & Hospital) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <!-- Provision Driver -->
+                    <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-3">
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-id-badge"></i>
+                            <span>Provision New Driver Account</span>
+                        </h4>
+                        <form id="form-provision-driver" onsubmit="handleProvisionDriver(event)" class="space-y-2.5 text-xs">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input id="prov-drv-username" type="text" required placeholder="Driver Username" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                                <input id="prov-drv-password" type="password" required minlength="8" placeholder="Password (8+ chars)" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input id="prov-drv-name" type="text" required placeholder="Full Name" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                                <input id="prov-drv-phone" type="tel" required placeholder="Phone (+91...)" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                            </div>
+                            <div>
+                                <select id="prov-drv-amb" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                                    <option value="AMB-01">AMB-01: Unit #DHN-108-01 (ALS - Clock Tower)</option>
+                                    <option value="AMB-02">AMB-02: Unit #DHN-108-02 (BLS - ISBT)</option>
+                                    <option value="AMB-03">AMB-03: Unit #DHN-108-03 (ALS - Ballupur)</option>
+                                    <option value="AMB-04">AMB-04: Unit #DHN-108-04 (ALS - Railway Station)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition">Create Driver Account</button>
+                        </form>
+                    </div>
+
+                    <!-- Provision Hospital -->
+                    <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-3">
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-hospital-user"></i>
+                            <span>Provision New Hospital Account</span>
+                        </h4>
+                        <form id="form-provision-hospital" onsubmit="handleProvisionHospital(event)" class="space-y-2.5 text-xs">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input id="prov-hosp-username" type="text" required placeholder="Hospital Username" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                                <input id="prov-hosp-password" type="password" required minlength="8" placeholder="Password (8+ chars)" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input id="prov-hosp-name" type="text" required placeholder="Admin Contact Name" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                                <input id="prov-hosp-phone" type="tel" required placeholder="Desk Phone" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                            </div>
+                            <div>
+                                <select id="prov-hosp-id" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                                    <option value="LOC-004">LOC-004: Max Super Speciality Hospital</option>
+                                    <option value="LOC-005">LOC-005: Shri Mahant Indiresh Hospital (SMIH)</option>
+                                    <option value="LOC-006">LOC-006: Synergy Institute of Medical Sciences</option>
+                                    <option value="LOC-007">LOC-007: Graphic Era Hospital (GEIMS)</option>
+                                    <option value="LOC-011">LOC-011: Doon Government Hospital</option>
+                                    <option value="LOC-009">LOC-009: CMI Hospital</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="w-full py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg transition">Create Hospital Account</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Fleet Management Table -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-truck-medical text-amber-500 text-lg"></i>
+                        <h3 class="font-extrabold text-base text-slate-900 dark:text-white">Emergency Fleet Operations &amp; Standby Availability</h3>
+                    </div>
+                    <span class="text-xs text-slate-500">Live Telemetry &bull; Min-Heap Dispatch Pool</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="text-slate-400 uppercase font-bold border-b border-slate-100 dark:border-slate-800 text-[10px]">
+                                <th class="py-2.5 px-3">Vehicle ID</th>
+                                <th class="py-2.5 px-3">Callsign / Code</th>
+                                <th class="py-2.5 px-3">Type</th>
+                                <th class="py-2.5 px-3">Driver / Contact</th>
+                                <th class="py-2.5 px-3">GPS Location</th>
+                                <th class="py-2.5 px-3">Status</th>
+                                <th class="py-2.5 px-3 text-right">Fleet Control</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-fleet-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                            <tr><td colspan="7" class="text-center py-4 text-slate-400">Loading ambulance fleet...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Section 3: All Emergencies Incident Log -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-triangle-exclamation text-red-500 text-lg"></i>
+                        <h3 class="font-extrabold text-base text-slate-900 dark:text-white">City-Wide Emergency Dispatches</h3>
+                    </div>
+                    <span class="text-xs text-slate-500">Complete Forward Lifecycle Audit Log</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="text-slate-400 uppercase font-bold border-b border-slate-100 dark:border-slate-800 text-[10px]">
+                                <th class="py-2.5 px-3">Emergency ID</th>
+                                <th class="py-2.5 px-3">Patient / Caller</th>
+                                <th class="py-2.5 px-3">Pickup Location</th>
+                                <th class="py-2.5 px-3">Severity</th>
+                                <th class="py-2.5 px-3">Reported Condition</th>
+                                <th class="py-2.5 px-3">Assigned Unit</th>
+                                <th class="py-2.5 px-3">Hospital Destination</th>
+                                <th class="py-2.5 px-3">Status</th>
+                                <th class="py-2.5 px-3">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-emergencies-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                            <tr><td colspan="9" class="text-center py-4 text-slate-400">Loading emergency incident archive...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Emergency Helplines Modal -->
+    <div id="helplines-modal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-phone-volume text-red-600"></i>
+                    <span>Emergency Helplines (Dehradun)</span>
+                </h3>
+                <button onclick="closeHelplinesModal()" class="text-slate-400 hover:text-slate-600 text-sm">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="space-y-3">
+                <a href="tel:108" class="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 flex items-center justify-between hover:scale-[1.02] transition">
+                    <div>
+                        <h4 class="font-bold text-sm text-red-900 dark:text-red-200">Emergency Ambulance (108)</h4>
+                        <p class="text-xs text-red-700 dark:text-red-400">Uttarakhand Emergency Medical Service</p>
+                    </div>
+                    <span class="px-3 py-1.5 rounded-lg bg-red-600 text-white font-bold text-xs">Call 108</span>
+                </a>
+                <a href="tel:112" class="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex items-center justify-between hover:scale-[1.02] transition">
+                    <div>
+                        <h4 class="font-bold text-sm text-blue-900 dark:text-blue-200">National Emergency / Police (112)</h4>
+                        <p class="text-xs text-blue-700 dark:text-blue-400">Dehradun Police Control Room</p>
+                    </div>
+                    <span class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold text-xs">Call 112</span>
+                </a>
+                <a href="tel:1090" class="p-3.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-900/60 flex items-center justify-between hover:scale-[1.02] transition">
+                    <div>
+                        <h4 class="font-bold text-sm text-purple-900 dark:text-purple-200">Women Safety Helpline (1090)</h4>
+                        <p class="text-xs text-purple-700 dark:text-purple-400">Uttarakhand Mahila Helpline</p>
+                    </div>
+                    <span class="px-3 py-1.5 rounded-lg bg-purple-600 text-white font-bold text-xs">Call 1090</span>
+                </a>
+            </div>
+            <button onclick="closeHelplinesModal()" class="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold rounded-xl text-xs transition">Close</button>
         </div>
     </div>
 
-    <!-- 5. Add Contact Modal -->
-    <div class="modal-overlay" id="contactModal">
-        <div class="modal-dialog">
-            <div class="modal-header">
-                <h3 id="contactModalTitle">Add Emergency Contact</h3>
-                <button class="modal-close" onclick="app.closeModal('contactModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="contactForm" onsubmit="app.handleContactSubmit(event)">
-                    <input type="hidden" id="contactEditId">
-                    <div class="form-group">
-                        <label for="contactNameInput">Contact Name *</label>
-                        <input type="text" id="contactNameInput" class="form-control" placeholder="Dr. R. K. Sharma" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="contactCatInput">Category / Relationship *</label>
-                        <select id="contactCatInput" class="form-control" required>
-                            <option value="Hospital Dispatch">Hospital Dispatch</option>
-                            <option value="Police Control">Police Control</option>
-                            <option value="Fire Station">Fire Station</option>
-                            <option value="Trauma Specialist">Trauma Specialist</option>
-                            <option value="Municipal Authority">Municipal Authority</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="contactPhoneInput">Phone Number *</label>
-                        <input type="text" id="contactPhoneInput" class="form-control" placeholder="+91 135 2650000" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="contactNotesInput">Optional Notes</label>
-                        <textarea id="contactNotesInput" class="form-control" rows="2" placeholder="Available 24x7..."></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline" onclick="app.closeModal('contactModal')">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Contact</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    <!-- Leaflet.js JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Chart.js JS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- TOAST NOTIFICATION CONTAINER -->
-    <div id="toastContainer" class="toast-container"></div>
-
-    <!-- Link JS -->
-    <script src="script.js" defer></script>
+    <!-- Module JavaScript APIs -->
+    <script src="js/auth.js"></script>
+    <script src="js/m1-api.js"></script>
+    <script src="js/m2-api.js"></script>
+    <script src="js/m3-api.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/tracking.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        if (window.Auth && Auth.isLoggedIn()) {
+            const u = Auth.getUser();
+            const c = document.getElementById('nav-auth-container');
+            if (c && u) {
+                const targetUrl = u.role === 'PATIENT' ? '/patient.html' :
+                                  u.role === 'DRIVER' ? '/driver.html' :
+                                  u.role === 'HOSPITAL' ? '/hospital.html' : '/index.html';
+                c.innerHTML = `
+                    <div class="flex items-center space-x-1.5">
+                        <a href="${targetUrl}" class="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-emerald-600 dark:text-emerald-400 transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-user-circle"></i>
+                            <span class="max-w-[100px] truncate">${u.username}</span>
+                            <span class="text-[10px] uppercase font-bold text-slate-400">(${u.role})</span>
+                        </a>
+                        <button onclick="Auth.logout()" title="Logout" class="p-2 rounded-xl bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-950/60 text-slate-500 hover:text-red-500 transition">
+                            <i class="fa-solid fa-power-off text-xs"></i>
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    </script>
 </body>
 </html>

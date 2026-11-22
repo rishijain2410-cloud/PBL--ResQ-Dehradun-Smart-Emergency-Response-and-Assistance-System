@@ -1,134 +1,68 @@
-#include "datasource/LocationCsvLoader.h"
-
+#include "LocationCsvLoader.h"
 #include <fstream>
-#include <iostream>
 #include <sstream>
+#include <iostream>
 #include <algorithm>
-#include <cctype>
 
-using namespace std;
+std::string LocationCsvLoader::trim(const std::string& str) {
+    size_t first = str.find_first_not_of(" \t\r\n\"");
+    if (first == std::string::npos) return "";
+    size_t last = str.find_last_not_of(" \t\r\n\"");
+    return str.substr(first, (last - first + 1));
+}
 
-vector<string> LocationCsvLoader::parseCsvLine(const string& line) {
-    vector<string> tokens;
-    string token;
+std::vector<std::string> LocationCsvLoader::parseCsvLine(const std::string& line) {
+    std::vector<std::string> fields;
+    std::string current;
     bool inQuotes = false;
 
-    for (size_t i = 0; i < line.length(); ++i) {
-        char ch = line[i];
-
-        if (ch == '\"') {
-            if (inQuotes && i + 1 < line.length() && line[i + 1] == '\"') {
-                token += '\"';
-                ++i;
-            } else {
-                inQuotes = !inQuotes;
-            }
-        } else if (ch == ',' && !inQuotes) {
-            tokens.push_back(token);
-            token.clear();
+    for (size_t i = 0; i < line.size(); ++i) {
+        char c = line[i];
+        if (c == '"') {
+            inQuotes = !inQuotes;
+        } else if (c == ',' && !inQuotes) {
+            fields.push_back(trim(current));
+            current.clear();
         } else {
-            token += ch;
+            current += c;
         }
     }
-    tokens.push_back(token);
-
-    for (auto& tok : tokens) {
-        tok.erase(tok.begin(), find_if(tok.begin(), tok.end(), [](unsigned char c) {
-            return !isspace(c);
-        }));
-        tok.erase(find_if(tok.rbegin(), tok.rend(), [](unsigned char c) {
-            return !isspace(c);
-        }).base(), tok.end());
-    }
-
-    return tokens;
+    fields.push_back(trim(current));
+    return fields;
 }
 
-vector<Location> LocationCsvLoader::loadFromFile(const string& filePath) {
-    ifstream file(filePath);
+std::vector<Location> LocationCsvLoader::loadFromFile(const std::string& filepath) {
+    std::vector<Location> locations;
+    std::ifstream file(filepath);
     if (!file.is_open()) {
-        cerr << "[LocationCsvLoader Error] Unable to open CSV file at path: "
-                  << filePath << endl;
-        return {};
+        std::cerr << "[LocationCsvLoader] Warning: Could not open file: " << filepath << std::endl;
+        return locations;
     }
-    return loadFromStream(file);
-}
 
-vector<Location> LocationCsvLoader::loadFromStream(istream& input) {
-    vector<Location> locations;
-    string line;
-    size_t lineNumber = 0;
+    std::string line;
+    bool isHeader = true;
 
-    while (getline(input, line)) {
-        lineNumber++;
-
-        if (!line.empty() && line.back() == '\r') {
-            line.pop_back();
-        }
-
-        string trimmed = line;
-        trimmed.erase(trimmed.begin(), find_if(trimmed.begin(), trimmed.end(), [](unsigned char c) {
-            return !isspace(c);
-        }));
-
-        if (trimmed.empty()) {
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+        if (isHeader) {
+            isHeader = false;
             continue;
         }
 
-        if (trimmed[0] == '#') {
-            continue;
-        }
-
-        vector<string> fields = parseCsvLine(line);
-
-        if (!fields.empty()) {
-            string firstColLower = fields[0];
-            transform(firstColLower.begin(), firstColLower.end(), firstColLower.begin(),
-                           [](unsigned char c) { return tolower(c); });
-            if (firstColLower == "locationid" || firstColLower == "id") {
-                continue;
-            }
-        }
-
-        if (fields.size() < 5) {
-            cerr << "[LocationCsvLoader Warning] Line " << lineNumber
-                      << ": Insufficient columns (expected at least 5, got "
-                      << fields.size() << "). Skipping row: '" << line << "'\n";
-            continue;
-        }
+        std::vector<std::string> fields = parseCsvLine(line);
+        if (fields.size() < 5) continue;
 
         try {
-            const string& id = fields[0];
-            const string& name = fields[1];
+            std::string id = fields[0];
+            std::string name = fields[1];
+            double lat = std::stod(fields[2]);
+            double lon = std::stod(fields[3]);
+            LocationType type = stringToLocationType(fields[4]);
+            std::string addr = (fields.size() >= 6) ? fields[5] : "";
 
-            double lat = 0.0;
-            double lon = 0.0;
-            try {
-                lat = stod(fields[2]);
-                lon = stod(fields[3]);
-            } catch (const exception& e) {
-                cerr << "[LocationCsvLoader Warning] Line " << lineNumber
-                          << ": Failed to parse coordinates ('" << fields[2] << "', '"
-                          << fields[3] << "') as numbers: " << e.what()
-                          << ". Skipping row.\n";
-                continue;
-            }
-
-            LocationType type = Location::stringToLocationType(fields[4]);
-
-            string address = (fields.size() >= 6) ? fields[5] : "";
-
-            Location loc(id, name, lat, lon, type, address);
-            locations.push_back(loc);
-
-        } catch (const invalid_argument& ex) {
-            cerr << "[LocationCsvLoader Warning] Line " << lineNumber
-                      << ": Validation failure: " << ex.what()
-                      << ". Skipping row.\n";
-        } catch (const exception& ex) {
-            cerr << "[LocationCsvLoader Warning] Line " << lineNumber
-                      << ": Unexpected error: " << ex.what()
-                      << ". Skipping row.\n";
+            locations.emplace_back(id, name, lat, lon, type, addr);
+        } catch (const std::exception& e) {
+            std::cerr << "[LocationCsvLoader] Error parsing line: " << line << " (" << e.what() << ")" << std::endl;
         }
     }
 

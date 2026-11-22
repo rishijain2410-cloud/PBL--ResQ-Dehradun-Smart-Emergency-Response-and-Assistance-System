@@ -1,22 +1,21 @@
-# NOTE: Geographic coordinates listed in this file are approximate demo data for the Dehradun PBL Project (Ambulance Management System).
-locationId,name,latitude,longitude,locationType,address
-LOC-001,Clock Tower Emergency Dispatch Post,30.3244,78.0418,EMERGENCY_SERVICE,Rajpur Road / Paltan Bazaar Chowk Dehradun
-LOC-002,ISBT Dehradun,30.2874,78.0069,TRANSPORT_HUB,Haridwar Bypass Road Transport Nagar Dehradun
-LOC-003,Dehradun Railway Station,30.3155,78.0350,TRANSPORT_HUB,Railway Colony Dehradun
-LOC-004,Jolly Grant Airport Ambulance Helipad,30.1897,78.1803,TRANSPORT_HUB,Rishikesh Road Dehradun Airport
-LOC-005,Synergy Community Hospital,30.3444,77.9995,HOSPITAL,Chakrata Road Ballupur Dehradun
-LOC-006,Combined Medical Institute Hospital,30.3776,78.0601,HOSPITAL,Anarwala Malsi Branch Dehradun
-LOC-007,Fortis Escorts Clinic,30.3872,78.1316,HOSPITAL,Sahastradhara Road Dehradun
-LOC-008,Shri Mahant Indiresh Hospital,30.2598,78.0084,HOSPITAL,Clement Town / Patel Nagar Dehradun
-LOC-009,Paltan Bazaar Emergency Post,30.3220,78.0392,EMERGENCY_SERVICE,Paltan Bazaar Road near Ghanta Ghar Dehradun
-LOC-010,Rajpur Road Emergency Unit,30.3541,78.0702,EMERGENCY_SERVICE,Rajpur Road Commercial Corridor Dehradun
-LOC-011,Doon Government Hospital,30.3235,78.0450,HOSPITAL,Court Road near Clock Tower Dehradun
-LOC-012,Max Super Speciality Hospital,30.3792,78.0831,HOSPITAL,Mussoorie Diversion Road Malsi Dehradun
-LOC-013,Parade Ground Emergency Station,30.3258,78.0465,EMERGENCY_SERVICE,Parade Ground Road near Subhash Road Dehradun
-LOC-014,Mussoorie Diversion Emergency Station,30.3698,78.0772,EMERGENCY_SERVICE,Mussoorie Diversion Pacific Mall Crossing
-LOC-015,Pacific Emergency Post,30.3602,78.0734,EMERGENCY_SERVICE,Rajpur Road near Sai Mandir Dehradun
-LOC-016,Dehradun Police Headquarters,30.3211,78.0425,EMERGENCY_SERVICE,Subhash Road Police Line Dehradun
-LOC-017,Fire Station Rajpur Road,30.3340,78.0510,EMERGENCY_SERVICE,Rajpur Road Dehradun Fire Service
-LOC-018,Apollo Clinic and Hospital,30.3412,78.0589,HOSPITAL,97 Rajpur Road Hathibarkala Salwala Dehradun
-LOC-019,City Hospital Rajpur Road,30.3478,78.0632,HOSPITAL,88 Rajpur Road Hathibarkala Dehradun
-LOC-020,Central Trauma Center,30.3240,78.0429,EMERGENCY_SERVICE,Clock Tower Complex Rajpur Road Dehradun
+location_id,name,latitude,longitude,type,address
+LOC-001,Clock Tower Emergency Post,30.3244,78.0418,LANDMARK,"Rajpur Road, Clock Tower Chowk, Dehradun"
+LOC-002,ISBT Dehradun Transit Hub,30.2872,78.0069,TRANSPORT_HUB,"Haridwar Bypass Road, Majra, Dehradun"
+LOC-003,Dehradun Railway Station,30.3155,78.0331,TRANSPORT_HUB,"Station Road, Lakkhi Bagh, Dehradun"
+LOC-004,Max Super Speciality Hospital,30.3812,78.0772,HOSPITAL,"Mussoorie Diversion Road, Johri, Malsi, Dehradun"
+LOC-005,Shri Mahant Indiresh Hospital,30.3124,78.0289,HOSPITAL,"Patel Nagar, Dehradun"
+LOC-006,Synergy Institute of Medical Sciences,30.3345,78.0212,HOSPITAL,"Ballupur Chowk, Canal Road, Dehradun"
+LOC-007,Graphic Era Institute of Medical Sciences (GEIMS),30.3521,77.9654,HOSPITAL,"16th Milestone, Chakrata Road, Dhoolkot, Dehradun"
+LOC-008,Graphic Era University (GEU Campus),30.2688,78.0084,LANDMARK,"566/6 Bell Road, Clement Town, Dehradun"
+LOC-009,CMI Hospital,30.3142,78.0511,HOSPITAL,"54 Haridwar Road, Dharampur, Dehradun"
+LOC-010,AIIMS Emergency Dehradun Outpost,30.2910,78.0720,HOSPITAL,"Haridwar Road Extension, Dehradun"
+LOC-011,Doon Government Hospital,30.3185,78.0412,HOSPITAL,"New Road, Race Course, Dehradun"
+LOC-012,Central Trauma Center,30.3170,78.0375,EMERGENCY_SERVICE,"Prince Chowk, Dehradun"
+LOC-013,Parade Ground Emergency Point,30.3235,78.0460,LANDMARK,"Subhash Road, Lansdowne Chowk, Dehradun"
+LOC-014,Ballupur Chowk Junction,30.3340,78.0180,TRANSPORT_HUB,"Chakrata Road Junction, Ballupur, Dehradun"
+LOC-015,Rispana Bridge Junction,30.2930,78.0535,TRANSPORT_HUB,"Haridwar Bypass - Rispana River, Dehradun"
+LOC-016,Prem Nagar Market Junction,30.3395,77.9620,TRANSPORT_HUB,"Chakrata Road, Prem Nagar, Dehradun"
+LOC-017,Rajpur Road Jakhan Junction,30.3580,78.0645,TRANSPORT_HUB,"Rajpur Road, Jakhan, Dehradun"
+LOC-018,Saharanpur Chowk Junction,30.3110,78.0315,TRANSPORT_HUB,"Saharanpur Road, Patel Nagar North, Dehradun"
+LOC-019,Clement Town Police Station,30.2650,78.0050,EMERGENCY_SERVICE,"Post Office Road, Clement Town, Dehradun"
+LOC-020,Dalanwala Emergency Health Post,30.3220,78.0590,EMERGENCY_SERVICE,"Circular Road, Dalanwala, Dehradun"

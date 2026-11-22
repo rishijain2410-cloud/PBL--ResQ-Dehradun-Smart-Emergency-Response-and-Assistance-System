@@ -1,3 +1,5 @@
-optionId,mode,displayName,averageSpeedKmph,costPerKm,baseFare,maxPracticalDistanceKm
-TRN-001,AMBULANCE,Ambulance,35.0,0.0,0.0,300.0
-TRN-002,CAR,Car / Cab,25.0,12.0,50.0,300.0
+mode,base_speed_kmh,highway_speed_kmh,city_speed_kmh,hill_speed_kmh,cost_per_km,base_fare,max_distance_km
+AMBULANCE_CAR,60.0,75.0,45.0,30.0,12.0,50.0,150.0
+TWO_WHEELER,45.0,50.0,40.0,25.0,5.0,10.0,50.0
+PUBLIC_BUS,30.0,40.0,25.0,18.0,3.0,15.0,100.0
+WALKING,5.0,5.0,4.5,3.5,0.0,0.0,5.0

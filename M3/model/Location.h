@@ -1,17 +1,19 @@
-#pragma once
+#ifndef M3_MODEL_LOCATION_H
+#define M3_MODEL_LOCATION_H
 
 #include <string>
 #include <stdexcept>
 
 enum class LocationType {
-    LANDMARK,
     HOSPITAL,
     EMERGENCY_SERVICE,
-    TOURIST_PLACE,
-    HOTEL,
-    RESTAURANT,
-    TRANSPORT_HUB
+    TRANSPORT_HUB,
+    LANDMARK,
+    UNKNOWN
 };
+
+std::string locationTypeToString(LocationType type);
+LocationType stringToLocationType(const std::string& typeStr);
 
 class Location {
 private:
@@ -22,30 +24,37 @@ private:
     LocationType locationType;
     std::string address;
 
-    static bool isValidLocationId(const std::string& id);
+    void validate() const;
 
 public:
     Location();
-
-    Location(const std::string& locationId,
+    Location(const std::string& id,
              const std::string& name,
-             double latitude,
-             double longitude,
-             LocationType locationType,
-             const std::string& address = "");
+             double lat,
+             double lon,
+             LocationType type,
+             const std::string& addr = "");
 
-    const std::string& getLocationId() const;
-    const std::string& getName() const;
-    double getLatitude() const;
-    double getLongitude() const;
-    LocationType getLocationType() const;
-    const std::string& getAddress() const;
+    // Getters
+    const std::string& getId() const { return locationId; }
+    const std::string& getName() const { return name; }
+    double getLatitude() const { return latitude; }
+    double getLongitude() const { return longitude; }
+    LocationType getType() const { return locationType; }
+    std::string getTypeString() const { return locationTypeToString(locationType); }
+    const std::string& getAddress() const { return address; }
 
-    std::string toString() const;
+    // Setters
+    void setId(const std::string& id);
+    void setName(const std::string& name);
+    void setCoordinates(double lat, double lon);
+    void setType(LocationType type);
+    void setAddress(const std::string& addr);
 
-    static std::string locationTypeToString(LocationType type);
-    static LocationType stringToLocationType(const std::string& typeStr);
-
-    bool operator==(const Location& other) const;
-    bool operator!=(const Location& other) const;
+    // Helpers
+    bool isHospital() const { return locationType == LocationType::HOSPITAL; }
+    bool isEmergencyService() const { return locationType == LocationType::EMERGENCY_SERVICE; }
+    std::string toJson() const;
 };
+
+#endif // M3_MODEL_LOCATION_H

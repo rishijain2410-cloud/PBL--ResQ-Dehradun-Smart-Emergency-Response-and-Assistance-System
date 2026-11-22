@@ -1,21 +1,36 @@
-#pragma once
+#ifndef M3_SERVICE_NEARBY_SERVICES_FINDER_H
+#define M3_SERVICE_NEARBY_SERVICES_FINDER_H
 
-#include "repository/LocationRepository.h"
-#include "model/Location.h"
-#include "dto/ApiResponse.h"
-
+#include "../repository/ILocationRepository.h"
+#include "../dto/ApiResponse.h"
 #include <vector>
+#include <utility>
+#include <memory>
+#include <string>
+
+struct NearbyResult {
+    double distanceKm;
+    Location location;
+
+    NearbyResult(double dist, const Location& loc) : distanceKm(dist), location(loc) {}
+
+    std::string toJson() const;
+};
 
 class NearbyServicesFinder {
 private:
-    const ILocationRepository& repo;
+    std::shared_ptr<ILocationRepository> repository;
 
 public:
-    explicit NearbyServicesFinder(const ILocationRepository& repo);
+    explicit NearbyServicesFinder(std::shared_ptr<ILocationRepository> repo);
 
-    ApiResponse<std::vector<Location>> findNearby(
+    ApiResponse<std::vector<NearbyResult>> findNearby(
         double latitude,
         double longitude,
         double radiusKm,
-        const std::vector<LocationType>& filterTypes) const;
+        LocationType typeFilter = LocationType::UNKNOWN);
+
+    static std::string resultsToJson(const std::vector<NearbyResult>& results);
 };
+
+#endif // M3_SERVICE_NEARBY_SERVICES_FINDER_H

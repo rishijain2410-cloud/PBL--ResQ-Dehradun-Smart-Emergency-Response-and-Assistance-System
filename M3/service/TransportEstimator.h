@@ -1,19 +1,20 @@
-#pragma once
+#ifndef M3_SERVICE_TRANSPORT_ESTIMATOR_H
+#define M3_SERVICE_TRANSPORT_ESTIMATOR_H
 
-#include "repository/TransportOptionRepository.h"
-#include "dto/TransportEstimate.h"
-#include "dto/RouteResponse.h"
-#include "model/TransportMode.h"
+#include "../model/TransportOptions.h"
+#include "../dto/RouteResponse.h"
 #include <vector>
+#include <memory>
 
 class TransportEstimator {
-public:
-    explicit TransportEstimator(const ITransportOptionRepository& repo);
-
-    TransportEstimate estimateFor(TransportMode mode, const RouteResponse& route) const;
-
-    std::vector<TransportEstimate> estimateAll(const RouteResponse& route) const;
-
 private:
-    const ITransportOptionRepository& repo;
+    std::vector<std::shared_ptr<TransportOption>> options;
+
+public:
+    TransportEstimator();
+
+    void estimateAll(RouteResponse& route) const;
+    const std::vector<std::shared_ptr<TransportOption>>& getOptions() const { return options; }
 };
+
+#endif // M3_SERVICE_TRANSPORT_ESTIMATOR_H

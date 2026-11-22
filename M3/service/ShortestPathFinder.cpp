@@ -1,145 +1,177 @@
-#include "service/ShortestPathFinder.h"
-
+#include "ShortestPathFinder.h"
 #include <queue>
 #include <unordered_map>
-#include <unordered_set>
-#include <algorithm>
 #include <limits>
+#include <algorithm>
 
-using namespace std;
-
-ShortestPathFinder::ShortestPathFinder(const RoadGraph& graph)
-    : graph(graph) {}
+ShortestPathFinder::ShortestPathFinder(std::shared_ptr<RoadGraph> roadGraph)
+    : graph(roadGraph) {}
 
 ApiResponse<RouteResponse> ShortestPathFinder::findShortestRoute(
-    const string& startNodeId,
-    const string& endNodeId) const {
+    const std::string& startNodeId,
+    const std::string& endNodeId) {
 
-    if (startNodeId.empty() || endNodeId.empty()) {
-        return ApiResponse<RouteResponse>::fail(
-            "Validation Error: Start and destination node IDs cannot be empty.",
-            ErrorCode::INVALID_ID
-        );
+    // 1. Validation checks
+    if (!graph) {
+        return ApiResponse<RouteResponse>::error("INTERNAL_ERROR", "Road graph is null");
+    }
+    if (!graph->hasNode(startNodeId)) {
+        return ApiResponse<RouteResponse>::error("NOT_FOUND", "Start location not found: " + startNodeId);
+    }
+    if (!graph->hasNode(endNodeId)) {
+        return ApiResponse<RouteResponse>::error("NOT_FOUND", "Destination location not found: " + endNodeId);
     }
 
-    if (!graph.hasNode(startNodeId)) {
-        return ApiResponse<RouteResponse>::fail(
-            "Start location '" + startNodeId + "' does not exist in the road network graph.",
-            ErrorCode::NOT_FOUND
-        );
-    }
-    if (!graph.hasNode(endNodeId)) {
-        return ApiResponse<RouteResponse>::fail(
-            "Destination location '" + endNodeId + "' does not exist in the road network graph.",
-            ErrorCode::NOT_FOUND
-        );
-    }
-
+    // 2. Identity case: start equals destination
     if (startNodeId == endNodeId) {
-        RouteResponse zeroRoute(
-            startNodeId,
-            endNodeId,
-            0.0,
-            {startNodeId},
-            {},
-            1
-        );
-        return ApiResponse<RouteResponse>::ok(
-            zeroRoute,
-            "Start and destination are identical."
-        );
+        std::vector<std::string> path = { startNodeId };
+        std::vector<RouteSegment> emptySegs;
+        RouteResponse resp(startNodeId, endNodeId, 0.0, path, emptySegs, 0, "Dijkstra (Min-Heap)");
+        return ApiResponse<RouteResponse>::ok(resp, "Origin and destination are identical");
     }
 
-    using QueueElement = pair<double, string>;
-    priority_queue<QueueElement, vector<QueueElement>, greater<QueueElement>> minHeap;
+    // 3. Dijkstra structures
+    const double INF = std::numeric_limits<double>::infinity();
+    std::unordered_map<std::string, double> distanceMap;
+    std::unordered_map<std::string, std::string> parentNodeMap;
+    std::unordered_map<std::string, RoadEdge> parentEdgeMap;
 
-    unordered_map<string, double> distanceMap;
-    unordered_map<string, string> parentNodeMap;
-    unordered_map<string, RoadEdge> parentEdgeMap;
-    unordered_set<string> visitedSet;
-
+    for (const auto& kv : graph->getAllNodes()) {
+        distanceMap[kv.first] = INF;
+    }
     distanceMap[startNodeId] = 0.0;
-    minHeap.emplace(0.0, startNodeId);
 
-    size_t nodesExplored = 0;
-    bool reachedDestination = false;
+    // Min-heap storing pair: (tentativeDistance, nodeId)
+    using HeapElement = std::pair<double, std::string>;
+    std::priority_queue<HeapElement, std::vector<HeapElement>, std::greater<HeapElement>> minHeap;
+
+    minHeap.push({0.0, startNodeId});
+    int nodesExplored = 0;
+    bool found = false;
 
     while (!minHeap.empty()) {
-        double currentDist = minHeap.top().first;
-        string currentId = minHeap.top().second;
+        auto [currentDist, u] = minHeap.top();
         minHeap.pop();
+        nodesExplored++;
 
-        if (visitedSet.find(currentId) != visitedSet.end()) {
+        // Stale entry check
+        if (currentDist > distanceMap[u]) {
             continue;
         }
 
-        visitedSet.insert(currentId);
-        nodesExplored++;
-
-        if (currentId == endNodeId) {
-            reachedDestination = true;
+        // Goal-directed early termination
+        if (u == endNodeId) {
+            found = true;
             break;
         }
 
-        for (const auto& edge : graph.getNeighbors(currentId)) {
-            const string& neighborId = edge.getToNodeId();
+        for (const auto& edge : graph->getNeighbors(u)) {
+            const std::string& v = edge.getToNodeId();
+            double weight = edge.getDistanceKm();
+            double newDist = currentDist + weight;
 
-            if (visitedSet.find(neighborId) != visitedSet.end()) {
-                continue;
-            }
-
-            double newDist = currentDist + edge.getDistanceKm();
-            auto distIt = distanceMap.find(neighborId);
-
-            if (distIt == distanceMap.end() || newDist < distIt->second) {
-                distanceMap[neighborId] = newDist;
-                parentNodeMap[neighborId] = currentId;
-                parentEdgeMap[neighborId] = edge;
-                minHeap.emplace(newDist, neighborId);
+            if (newDist < distanceMap[v]) {
+                distanceMap[v] = newDist;
+                parentNodeMap[v] = u;
+                parentEdgeMap[v] = edge;
+                minHeap.push({newDist, v});
             }
         }
     }
 
-    if (!reachedDestination) {
-        return ApiResponse<RouteResponse>::fail(
-            "No route found between '" + startNodeId + "' and '" + endNodeId + "'. Locations are disconnected.",
-            ErrorCode::NO_RESULTS
-        );
+    if (!found || distanceMap[endNodeId] == INF) {
+        return ApiResponse<RouteResponse>::error("NO_RESULTS", "No connecting route found between locations");
     }
 
-    vector<string> pathNodeIds;
-    vector<RouteSegment> segments;
+    // 4. Backtrack path reconstruction
+    std::vector<std::string> pathNodes;
+    std::vector<RouteSegment> segments;
 
-    string current = endNodeId;
-    while (current != startNodeId) {
-        pathNodeIds.push_back(current);
-        const RoadEdge& edge = parentEdgeMap.at(current);
-        segments.emplace_back(
-            edge.getFromNodeId(),
-            edge.getToNodeId(),
-            edge.getRoadName(),
-            edge.getDistanceKm(),
-            edge.getRoadType()
-        );
-        current = parentNodeMap.at(current);
+    std::string curr = endNodeId;
+    while (curr != startNodeId) {
+        pathNodes.push_back(curr);
+        const RoadEdge& edge = parentEdgeMap[curr];
+        segments.emplace_back(edge.getFromNodeId(), edge.getToNodeId(),
+                              edge.getRoadName(), edge.getRoadType(), edge.getDistanceKm());
+        curr = parentNodeMap[curr];
     }
-    pathNodeIds.push_back(startNodeId);
+    pathNodes.push_back(startNodeId);
 
-    reverse(pathNodeIds.begin(), pathNodeIds.end());
-    reverse(segments.begin(), segments.end());
+    std::reverse(pathNodes.begin(), pathNodes.end());
+    std::reverse(segments.begin(), segments.end());
 
-    double totalDistanceKm = distanceMap.at(endNodeId);
-    RouteResponse response(
-        startNodeId,
-        endNodeId,
-        totalDistanceKm,
-        pathNodeIds,
-        segments,
-        nodesExplored
-    );
+    RouteResponse response(startNodeId, endNodeId, distanceMap[endNodeId],
+                          pathNodes, segments, nodesExplored, "Dijkstra (Min-Heap)");
 
-    return ApiResponse<RouteResponse>::ok(
-        response,
-        "Shortest route computed successfully."
-    );
+    return ApiResponse<RouteResponse>::ok(response, "Shortest route calculated successfully");
+}
+
+ApiResponse<RouteResponse> ShortestPathFinder::findShortestRouteBellmanFord(
+    const std::string& startNodeId,
+    const std::string& endNodeId) {
+
+    if (!graph || !graph->hasNode(startNodeId) || !graph->hasNode(endNodeId)) {
+        return ApiResponse<RouteResponse>::error("NOT_FOUND", "Invalid start or destination node");
+    }
+
+    if (startNodeId == endNodeId) {
+        std::vector<std::string> path = { startNodeId };
+        RouteResponse resp(startNodeId, endNodeId, 0.0, path, {}, 0, "Bellman-Ford");
+        return ApiResponse<RouteResponse>::ok(resp, "Identity route");
+    }
+
+    const double INF = std::numeric_limits<double>::infinity();
+    std::unordered_map<std::string, double> dist;
+    std::unordered_map<std::string, std::string> parentNode;
+    std::unordered_map<std::string, RoadEdge> parentEdge;
+
+    for (const auto& kv : graph->getAllNodes()) {
+        dist[kv.first] = INF;
+    }
+    dist[startNodeId] = 0.0;
+
+    const auto& edges = graph->getAllEdges();
+    size_t V = graph->getNodeCount();
+
+    // Relax all edges |V| - 1 times
+    for (size_t i = 1; i < V; ++i) {
+        bool changed = false;
+        for (const auto& edge : edges) {
+            const std::string& u = edge.getFromNodeId();
+            const std::string& v = edge.getToNodeId();
+            double w = edge.getDistanceKm();
+
+            if (dist[u] != INF && dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                parentNode[v] = u;
+                parentEdge[v] = edge;
+                changed = true;
+            }
+        }
+        if (!changed) break; // Optimization
+    }
+
+    if (dist[endNodeId] == INF) {
+        return ApiResponse<RouteResponse>::error("NO_RESULTS", "Unreachable");
+    }
+
+    std::vector<std::string> pathNodes;
+    std::vector<RouteSegment> segments;
+    std::string curr = endNodeId;
+
+    while (curr != startNodeId) {
+        pathNodes.push_back(curr);
+        const RoadEdge& edge = parentEdge[curr];
+        segments.emplace_back(edge.getFromNodeId(), edge.getToNodeId(),
+                              edge.getRoadName(), edge.getRoadType(), edge.getDistanceKm());
+        curr = parentNode[curr];
+    }
+    pathNodes.push_back(startNodeId);
+
+    std::reverse(pathNodes.begin(), pathNodes.end());
+    std::reverse(segments.begin(), segments.end());
+
+    RouteResponse response(startNodeId, endNodeId, dist[endNodeId],
+                          pathNodes, segments, static_cast<int>(V), "Bellman-Ford");
+    return ApiResponse<RouteResponse>::ok(response, "Bellman-Ford path computed");
 }

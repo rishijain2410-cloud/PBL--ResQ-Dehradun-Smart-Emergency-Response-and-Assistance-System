@@ -1,37 +1,33 @@
-#include "service/RoadGraphBuilder.h"
-
+#include "RoadGraphBuilder.h"
 #include <iostream>
 
-using namespace std;
+std::shared_ptr<RoadGraph> RoadGraphBuilder::buildGraph(
+    const ILocationRepository& locationRepo,
+    const std::vector<RoadEdge>& edges,
+    bool bidirectional) {
 
-RoadGraph RoadGraphBuilder::build(const ILocationRepository& repo,
-                                  const vector<RoadEdge>& edges) {
-    RoadGraph graph;
+    auto graph = std::make_shared<RoadGraph>();
 
-    vector<Location> locations = repo.findAll();
+    // 1. Ingest all locations as nodes
+    std::vector<Location> locations = locationRepo.findAll();
     for (const auto& loc : locations) {
-        try {
-            graph.addNode(LocationNode::fromLocation(loc));
-        } catch (const exception& ex) {
-            cerr << "[RoadGraphBuilder Warning] Could not add node for location "
-                      << loc.getLocationId() << ": " << ex.what() << "\n";
+        LocationNode node(loc);
+        graph->addNode(node);
+    }
+
+    // 2. Link all edges
+    for (const auto& edge : edges) {
+        if (graph->hasNode(edge.getFromNodeId()) && graph->hasNode(edge.getToNodeId())) {
+            graph->addEdge(edge, bidirectional);
+        } else {
+            std::cerr << "[RoadGraphBuilder] Warning: Skipping edge with unknown endpoints: "
+                      << edge.getFromNodeId() << " -> " << edge.getToNodeId() << std::endl;
         }
     }
 
-    for (const auto& edge : edges) {
-        if (!graph.hasNode(edge.getFromNodeId()) || !graph.hasNode(edge.getToNodeId())) {
-            cerr << "[RoadGraphBuilder Warning] Edge " << edge.getEdgeId()
-                      << " references unknown location ('" << edge.getFromNodeId()
-                      << "' -> '" << edge.getToNodeId() << "'). Skipping.\n";
-            continue;
-        }
-
-        try {
-            graph.addEdge(edge, true);
-        } catch (const exception& ex) {
-            cerr << "[RoadGraphBuilder Warning] Failed to register edge "
-                      << edge.getEdgeId() << ": " << ex.what() << ". Skipping.\n";
-        }
+    // 3. Connectivity validation
+    if (!graph->isConnected()) {
+        std::cerr << "[RoadGraphBuilder] Alert: Road network contains disconnected subgraphs!" << std::endl;
     }
 
     return graph;

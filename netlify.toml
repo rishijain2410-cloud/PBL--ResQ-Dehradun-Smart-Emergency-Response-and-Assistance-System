@@ -1,0 +1,13 @@
+# Netlify configuration for JEEVAN MARG
+# Deploying the static frontend (M4/)
+
+[build]
+  publish = "M4"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

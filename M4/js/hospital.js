@@ -53,10 +53,23 @@ function initHospitalMap() {
         attributionControl: false
     }).setView([defaultLat, defaultLng], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        opacity: 0.85
-    }).addTo(hospitalMap);
+    const osmDetailed = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    });
+    const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        subdomains: 'abcd',
+        attribution: '&copy; CartoDB'
+    });
+
+    osmDetailed.addTo(hospitalMap);
+
+    const baseMaps = {
+        "High-Detail Roads (OSM)": osmDetailed,
+        "Clean Street Map (Carto)": cartoVoyager
+    };
+    L.control.layers(baseMaps, null, { position: 'topright' }).addTo(hospitalMap);
 
     // Place Hospital Facility Pin
     const hospIcon = Common.createPinIcon('hospital', 'fa-hospital');
@@ -345,6 +358,7 @@ function renderIncomingQueue(activeList) {
     container.innerHTML = activeList.map(em => {
         const isCritical = (em.severity === 'CRITICAL');
         const isArrived = (em.status === 'ARRIVED');
+        const canAdmit = (em.status === 'ON_SCENE' || em.status === 'TRANSPORTING' || em.status === 'ARRIVED');
 
         return `
             <div class="incoming-patient-card ${isCritical ? 'severity-critical' : 'severity-high'} mb-3">
@@ -362,6 +376,12 @@ function renderIncomingQueue(activeList) {
                             Patient: <strong>${Common.escapeHtml(em.patientName || em.callerName || 'Unknown')}</strong> &bull;
                             Contact: <strong>${Common.escapeHtml(em.patientPhone || em.callerPhone || '108')}</strong>
                         </div>
+                        ${(em.relativeName || em.relativePhone) ? `
+                        <div class="text-[11px] text-amber-300 mt-1 flex items-center space-x-1.5 bg-amber-950/40 px-2 py-1 rounded-lg border border-amber-800/40">
+                            <i class="fa-solid fa-people-roof text-xs text-amber-400"></i>
+                            <span>Relative: <strong>${Common.escapeHtml(em.relativeName || 'Emergency Contact')}</strong> ${em.relativeRelation ? `(${Common.escapeHtml(em.relativeRelation)})` : ''} &bull; <a href="tel:${Common.escapeHtml(em.relativePhone || '')}" class="underline font-bold text-amber-200">${Common.escapeHtml(em.relativePhone || '')}</a></span>
+                        </div>
+                        ` : ''}
                         <div class="text-[11px] text-slate-400 mt-0.5">
                             Reported Condition: <span class="text-slate-200 font-semibold">${Common.escapeHtml(em.condition || em.conditionText || 'Emergency')}</span>
                         </div>
@@ -378,10 +398,17 @@ function renderIncomingQueue(activeList) {
                                 <i class="fa-solid fa-check-double text-[10px]"></i>
                                 <span>Accept &amp; Prep</span>
                             </button>
+                            ${canAdmit ? `
                             <button onclick="confirmAdmission('${Common.escapeHtml(em.emergencyId)}')" class="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-extrabold text-xs shadow-md shadow-teal-600/30 transition flex items-center space-x-1.5 whitespace-nowrap" title="Admit patient to ward and release ambulance">
                                 <i class="fa-solid fa-hospital-user"></i>
                                 <span>Admit Patient</span>
                             </button>
+                            ` : `
+                            <button onclick="warnCannotAdmit('${Common.escapeHtml(em.emergencyId)}', '${Common.escapeHtml(em.status)}')" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-500 border border-slate-700 font-bold text-xs flex items-center space-x-1.5 cursor-not-allowed transition" title="Driver has not reached on-scene yet. Waiting for ON_SCENE confirmation.">
+                                <i class="fa-solid fa-lock text-[10px]"></i>
+                                <span>Admit (Wait On-Scene)</span>
+                            </button>
+                            `}
                         </div>
                     </div>
                 </div>
@@ -484,5 +511,10 @@ async function confirmAdmission(emergencyId) {
     }
 }
 
+function warnCannotAdmit(emergencyId, currentStatus) {
+    Common.toast(`Cannot Admit: Driver is currently in '${currentStatus}'. Patient can only be admitted once ambulance driver arrives on scene (ON_SCENE).`, 'warning', 5000);
+}
+
+window.warnCannotAdmit = warnCannotAdmit;
 window.acceptEmergency = acceptEmergency;
 window.confirmAdmission = confirmAdmission;

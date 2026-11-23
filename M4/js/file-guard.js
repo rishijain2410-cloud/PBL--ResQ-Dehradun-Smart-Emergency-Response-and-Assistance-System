@@ -41,7 +41,7 @@
                 'z-index: 2147483647'
             ].join(';'));
 
-            guardContainer.innerHTML =
+            guardContainer.innerHTML = 
                 '<div style="max-width: 580px; width: 100%; background: #131c2e; border: 1px solid #233554; border-radius: 16px; padding: 36px 32px; box-shadow: 0 25px 60px rgba(0,0,0,0.6); text-align: center; box-sizing: border-box;">' +
                     '<div style="width: 64px; height: 64px; margin: 0 auto 20px auto; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px;">' +
                         '⚠️' +

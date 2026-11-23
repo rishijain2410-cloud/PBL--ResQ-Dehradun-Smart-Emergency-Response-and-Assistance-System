@@ -6,9 +6,9 @@
 (function() {
     'use strict';
 
-    const isCloud = window.location.hostname.includes('netlify.app') ||
-                    (window.location.protocol.startsWith('http') &&
-                     window.location.hostname !== 'localhost' &&
+    const isCloud = window.location.hostname.includes('netlify.app') || 
+                    (window.location.protocol.startsWith('http') && 
+                     window.location.hostname !== 'localhost' && 
                      window.location.hostname !== '127.0.0.1');
 
     console.info(`[JEEVAN MARG] Cloud Mock Engine active (Environment: ${isCloud ? 'Netlify Showcase Cloud' : 'Local Host'})`);
@@ -502,7 +502,7 @@
         if (normMethod === 'POST' && (path.includes('/emergency-requests') || path.includes('/patient/emergency') || path === '/api/emergencies')) {
             const emergencies = getStore('emergencies', SEED_EMERGENCIES);
             const newId = 'EMG-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
-
+            
             const cond = (parsedBody.condition || parsedBody.conditionText || 'Emergency Dispatch').toLowerCase();
             let cat = 'CRITICAL';
             let urg = 1;
@@ -531,6 +531,9 @@
                 callerPhone: parsedBody.patientPhone || parsedBody.callerPhone || "+91-9876543210",
                 patientName: parsedBody.patientName || parsedBody.callerName || "Aryan",
                 patientPhone: parsedBody.patientPhone || parsedBody.callerPhone || "+91-9876543210",
+                relativeName: parsedBody.relativeName || "",
+                relativePhone: parsedBody.relativePhone || "",
+                relativeRelation: parsedBody.relativeRelation || "",
                 condition: parsedBody.condition || parsedBody.conditionText || "Severe Acute Emergency",
                 conditionText: parsedBody.condition || parsedBody.conditionText || "Severe Acute Emergency",
                 pickupLocation: parsedBody.pickupLocation || parsedBody.location || "Clock Tower, Dehradun",
@@ -584,20 +587,47 @@
         // 5. GET /api/emergencies/:id or tracking
         if (normMethod === 'GET' && path.includes('/api/emergencies/')) {
             const parts = path.split('/');
-            const emId = parts[3];
+            const emId = parts[parts.length - 1].replace('?.*', '');
             const emergencies = getStore('emergencies', SEED_EMERGENCIES);
-            const em = emergencies.find(e => e.emergencyId === emId) || emergencies[0];
+            const em = emergencies.find(e => e.emergencyId === emId || path.includes(e.emergencyId)) || emergencies[0];
+            const hospitals = getStore('hospitals', SEED_HOSPITALS);
+            const hosp = hospitals.find(h => h.id === em.assignedHospitalId) || hospitals[0];
+
+            let ambLat = em.latitude + 0.003;
+            let ambLng = em.longitude - 0.002;
+            if (em.status === 'ON_SCENE') {
+                ambLat = em.latitude;
+                ambLng = em.longitude;
+            } else if (em.status === 'TRANSPORTING') {
+                ambLat = (em.latitude + hosp.latitude) / 2;
+                ambLng = (em.longitude + hosp.longitude) / 2;
+            } else if (em.status === 'ARRIVED' || em.status === 'COMPLETED') {
+                ambLat = hosp.latitude;
+                ambLng = hosp.longitude;
+            }
+
             return {
                 success: true,
                 data: {
+                    ...em,
                     emergency: em,
+                    id: em.emergencyId,
+                    status: em.status,
+                    severity: em.severity,
+                    callerName: em.callerName || em.patientName,
+                    callerPhone: em.callerPhone || em.patientPhone,
+                    relativeName: em.relativeName || "",
+                    relativePhone: em.relativePhone || "",
+                    relativeRelation: em.relativeRelation || "",
                     ambulance: {
                         unitCode: em.assignedAmbulanceId || "AMB-01",
-                        status: em.status === 'COMPLETED' ? 'READY' : 'EN_ROUTE',
-                        currentLat: em.latitude + 0.003,
-                        currentLng: em.longitude - 0.002
+                        status: em.status === 'COMPLETED' ? 'READY' : (em.status || 'EN_ROUTE'),
+                        currentLat: ambLat,
+                        currentLng: ambLng,
+                        driverName: "Vikram Negi",
+                        driverPhone: "+91-98765-43210"
                     },
-                    hospital: SEED_HOSPITALS[0]
+                    hospital: hosp
                 }
             };
         }
@@ -709,7 +739,8 @@
 
         // 10. Hospital Portal: GET /api/hospital/profile
         if (path === '/api/hospital/profile') {
-            return { success: true, data: SEED_HOSPITALS[0] };
+            const hospitals = getStore('hospitals', SEED_HOSPITALS);
+            return { success: true, data: hospitals[0] || SEED_HOSPITALS[0] };
         }
 
         // 11. Hospital Portal: GET /api/hospital/emergencies
@@ -751,6 +782,15 @@
             const hosp = hospitals.find(h => h.id === hospId) || hospitals[0];
 
             if (path.includes('admit')) {
+                // Precondition check: Ambulance must have confirmed at least ON_SCENE arrival!
+                if (targetEm && targetEm.status !== 'ON_SCENE' && targetEm.status !== 'TRANSPORTING' && targetEm.status !== 'ARRIVED') {
+                    return {
+                        success: false,
+                        status: "PRECONDITION_FAILED",
+                        message: "Cannot admit patient yet: Driver must reach on-scene and confirm arrival first."
+                    };
+                }
+
                 if (targetEm) {
                     targetEm.status = 'COMPLETED';
                     targetEm.admitted = true;
@@ -787,9 +827,11 @@
                     emergency: targetEm
                 };
             } else {
-                // Accept & Prep ICU Ward
+                // Accept & Prep ICU Ward (Staff acknowledges and prepares trauma bay in advance)
                 if (targetEm) {
-                    targetEm.status = 'ARRIVED';
+                    targetEm.prepped = true;
+                    targetEm.preppedAt = new Date().toLocaleTimeString();
+                    // Do NOT jump to ARRIVED prematurely if still en route!
                 }
                 setStore('emergencies', emergencies);
                 return {
@@ -936,10 +978,10 @@
         const headers = (init && init.headers) ? init.headers : (input instanceof Request ? input.headers : {});
         const body = (init && init.body) ? init.body : null;
 
-        const isApiCall = urlStr.includes('/api/') ||
-                          urlStr.endsWith('/nearby') ||
+        const isApiCall = urlStr.includes('/api/') || 
+                          urlStr.endsWith('/nearby') || 
                           urlStr.includes('/nearby?') ||
-                          urlStr.endsWith('/route') ||
+                          urlStr.endsWith('/route') || 
                           urlStr.includes('/route?') ||
                           urlStr.endsWith('/hospitals');
 
@@ -963,7 +1005,7 @@
         // If local or non-API: attempt native fetch first
         try {
             const res = await nativeFetch(input, init);
-
+            
             // If response returned HTML on an API endpoint (e.g. Netlify 200 redirect to index.html or 404 HTML), intercept!
             if (isApiCall) {
                 const contentType = res.headers.get('content-type') || '';

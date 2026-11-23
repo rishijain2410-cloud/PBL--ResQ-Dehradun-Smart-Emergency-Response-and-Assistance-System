@@ -11,13 +11,32 @@ function initLeafletMap() {
     if (mapInstance) return;
 
     // Centered on Dehradun, Uttarakhand
-    mapInstance = L.map('leaflet-map').setView([30.3244, 78.0350], 13);
+    mapInstance = L.map('leaflet-map', {
+        zoomControl: true,
+        attributionControl: false
+    }).setView([30.3244, 78.0350], 13);
 
-    // OpenStreetMap standard tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | JEEVAN MARG',
-        maxZoom: 18
-    }).addTo(mapInstance);
+    // High-Detail OpenStreetMap Roads Layer
+    const osmDetailed = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors | ResQ Dehradun',
+        maxZoom: 19
+    });
+
+    // Clean Street Map (CartoDB Voyager) for enhanced road readability
+    const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; CartoDB &copy; OpenStreetMap contributors',
+        maxZoom: 19,
+        subdomains: 'abcd'
+    });
+
+    osmDetailed.addTo(mapInstance);
+
+    // Add Layer Switcher Control
+    const baseMaps = {
+        "High-Detail Roads (OSM)": osmDetailed,
+        "Clean Street Map (Carto)": cartoVoyager
+    };
+    L.control.layers(baseMaps, null, { position: 'topright' }).addTo(mapInstance);
 
     // Place Hospital Markers
     renderHospitalMarkers();
@@ -109,12 +128,18 @@ async function renderAmbulanceMarkers() {
     });
 }
 
+let routeCasingLine = null;
+
 function drawRouteOnMap(pathNodeIds) {
     if (!mapInstance) return;
 
     if (currentRoutePolyline) {
         mapInstance.removeLayer(currentRoutePolyline);
         currentRoutePolyline = null;
+    }
+    if (routeCasingLine) {
+        mapInstance.removeLayer(routeCasingLine);
+        routeCasingLine = null;
     }
 
     const latLngs = [];
@@ -127,11 +152,20 @@ function drawRouteOnMap(pathNodeIds) {
 
     if (latLngs.length < 2) return;
 
+    // Dark casing line underneath for maximum visibility on complex road textures
+    routeCasingLine = L.polyline(latLngs, {
+        color: '#0f172a',
+        weight: 9,
+        opacity: 0.85,
+        lineCap: 'round',
+        lineJoin: 'round'
+    }).addTo(mapInstance);
+
     // Draw main glowing animated route polyline
     currentRoutePolyline = L.polyline(latLngs, {
         color: '#10b981',
-        weight: 6,
-        opacity: 0.9,
+        weight: 5,
+        opacity: 0.95,
         lineCap: 'round',
         lineJoin: 'round',
         className: 'animated-route-polyline'

@@ -53,6 +53,8 @@ function renderDriverHeader(user) {
     }
 }
 
+let driverRouteCasing = null;
+
 // -----------------------------------------------------------------------------
 // Leaflet Navigation Map
 // -----------------------------------------------------------------------------
@@ -65,9 +67,23 @@ function initDriverMap() {
         attributionControl: false
     }).setView([30.3244, 78.0418], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
-    }).addTo(driverMap);
+    const osmDetailed = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    });
+    const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        subdomains: 'abcd',
+        attribution: '&copy; CartoDB'
+    });
+
+    osmDetailed.addTo(driverMap);
+
+    const baseMaps = {
+        "High-Detail Roads (OSM)": osmDetailed,
+        "Clean Street Map (Carto)": cartoVoyager
+    };
+    L.control.layers(baseMaps, null, { position: 'topright' }).addTo(driverMap);
 }
 
 function updateMapMarkers(ambLat, ambLng, pLat, pLng, hLat, hLng, hName) {
@@ -118,14 +134,25 @@ function updateMapMarkers(ambLat, ambLng, pLat, pLng, hLat, hLng, hName) {
     }
 
     // 4. Draw route: Use Dijkstra road polyline if provided, else fallback to straight lines
+    if (routeLine) {
+        driverMap.removeLayer(routeLine);
+        routeLine = null;
+    }
+    if (driverRouteCasing) {
+        driverMap.removeLayer(driverRouteCasing);
+        driverRouteCasing = null;
+    }
+
     if (activeMission && activeMission.liveRoute && activeMission.liveRoute.coordinates && activeMission.liveRoute.coordinates.length >= 2) {
-        if (routeLine) {
-            driverMap.removeLayer(routeLine);
-        }
         const roadPoly = activeMission.liveRoute.coordinates.map(c => [c.latitude, c.longitude]);
         if (ambLat && ambLng) {
             roadPoly.unshift([ambLat, ambLng]);
         }
+        driverRouteCasing = L.polyline(roadPoly, {
+            color: '#0f172a',
+            weight: 8,
+            opacity: 0.85
+        }).addTo(driverMap);
         routeLine = L.polyline(roadPoly, {
             color: '#f59e0b',
             weight: 5,
@@ -134,9 +161,11 @@ function updateMapMarkers(ambLat, ambLng, pLat, pLng, hLat, hLng, hName) {
         }).addTo(driverMap);
         driverMap.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
     } else if (points.length >= 2) {
-        if (routeLine) {
-            driverMap.removeLayer(routeLine);
-        }
+        driverRouteCasing = L.polyline(points, {
+            color: '#0f172a',
+            weight: 8,
+            opacity: 0.85
+        }).addTo(driverMap);
         routeLine = L.polyline(points, {
             color: '#f59e0b',
             weight: 5,
@@ -291,6 +320,7 @@ function renderActiveMissionCard(mission) {
         if (patientMarker && driverMap) { driverMap.removeLayer(patientMarker); patientMarker = null; }
         if (hospitalMarker && driverMap) { driverMap.removeLayer(hospitalMarker); hospitalMarker = null; }
         if (routeLine && driverMap) { driverMap.removeLayer(routeLine); routeLine = null; }
+        if (driverRouteCasing && driverMap) { driverMap.removeLayer(driverRouteCasing); driverRouteCasing = null; }
         return;
     }
 
@@ -321,6 +351,27 @@ function renderActiveMissionCard(mission) {
     }
     if (locationEl) locationEl.textContent = mission.pickupLocation || mission.location || 'Dehradun';
     if (conditionEl) conditionEl.textContent = mission.condition || mission.conditionText || 'Emergency';
+
+    // Populate Relative / Emergency Contact if provided
+    const relCard = document.getElementById('mission-relative-card');
+    const relNameEl = document.getElementById('mission-relative-name');
+    const relTypeEl = document.getElementById('mission-relative-rel');
+    const relPhoneEl = document.getElementById('mission-relative-phone');
+
+    if (relCard) {
+        if (mission.relativeName || mission.relativePhone) {
+            relCard.classList.remove('hidden');
+            if (relNameEl) relNameEl.textContent = mission.relativeName || 'Emergency Contact';
+            if (relTypeEl) relTypeEl.textContent = mission.relativeRelation ? `(${mission.relativeRelation})` : '';
+            if (relPhoneEl) {
+                const rPhone = mission.relativePhone || '108';
+                relPhoneEl.href = `tel:${rPhone}`;
+                relPhoneEl.title = `Call ${mission.relativeName || 'Relative'} (${rPhone})`;
+            }
+        } else {
+            relCard.classList.add('hidden');
+        }
+    }
 
     const hosp = mission.hospital || {};
     if (hospNameEl) hospNameEl.textContent = hosp.name || mission.assignedHospitalId || 'Hospital';

@@ -30,6 +30,53 @@
             <span id="error-msg">Invalid credentials</span>
         </div>
 
+        <!-- 1-Click Direct Demo Launch for Evaluators -->
+        <div class="mb-6 p-4 rounded-xl bg-slate-900/90 border border-emerald-500/40 shadow-inner">
+            <div class="flex items-center justify-between mb-2.5">
+                <span class="text-[11px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt-lightning text-amber-400"></i>
+                    <span>1-Click Live Portals (No Password)</span>
+                </span>
+                <span class="text-[10px] text-slate-400 font-bold bg-slate-800 px-2 py-0.5 rounded">Quick Test</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <button type="button" onclick="quickLogin('patient_demo')" class="p-2.5 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-700/60 text-left transition flex items-center space-x-2">
+                    <i class="fa-solid fa-hospital-user text-indigo-400 text-sm"></i>
+                    <div>
+                        <div class="font-bold text-white text-xs">Citizen SOS</div>
+                        <div class="text-[10px] text-indigo-300">Patient Portal &rarr;</div>
+                    </div>
+                </button>
+                <button type="button" onclick="quickLogin('driver_amb01')" class="p-2.5 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-700/60 text-left transition flex items-center space-x-2">
+                    <i class="fa-solid fa-truck-medical text-amber-400 text-sm"></i>
+                    <div>
+                        <div class="font-bold text-white text-xs">Driver Cockpit</div>
+                        <div class="text-[10px] text-amber-300">AMB-01 Drive &rarr;</div>
+                    </div>
+                </button>
+                <button type="button" onclick="quickLogin('hosp_max')" class="p-2.5 rounded-lg bg-teal-950/70 hover:bg-teal-900 border border-teal-700/60 text-left transition flex items-center space-x-2">
+                    <i class="fa-solid fa-hospital text-teal-400 text-sm"></i>
+                    <div>
+                        <div class="font-bold text-white text-xs">Hospital ER</div>
+                        <div class="text-[10px] text-teal-300">ICU Bed Radar &rarr;</div>
+                    </div>
+                </button>
+                <button type="button" onclick="quickLogin('admin')" class="p-2.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-700/60 text-left transition flex items-center space-x-2">
+                    <i class="fa-solid fa-shield-halved text-emerald-400 text-sm"></i>
+                    <div>
+                        <div class="font-bold text-white text-xs">Control Room</div>
+                        <div class="text-[10px] text-emerald-300">Central Fleet &rarr;</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div class="relative flex py-2 items-center mb-4">
+            <div class="flex-grow border-t border-slate-700"></div>
+            <span class="flex-shrink mx-3 text-[10px] uppercase font-bold text-slate-500">Or Sign In with Credentials</span>
+            <div class="flex-grow border-t border-slate-700"></div>
+        </div>
+
         <!-- Form -->
         <form id="login-form" class="space-y-4">
             <div>
@@ -115,6 +162,23 @@
                 submitBtn.disabled = false;
             }
         });
+
+        async function quickLogin(accountKey) {
+            if (submitBtn) submitBtn.disabled = true;
+            if (btnText) btnText.textContent = 'Launching...';
+
+            const accounts = {
+                'patient_demo': { role: 'PATIENT', username: 'patient_demo', displayName: 'Aryan (Patient)', phone: '+91-9876543210' },
+                'driver_amb01': { role: 'DRIVER', username: 'driver_amb01', displayName: 'Ramesh Singh (AMB-01)', linkedAmbulanceId: 'AMB-01', phone: '+91-9897011001' },
+                'hosp_max': { role: 'HOSPITAL', username: 'hosp_max', displayName: 'Max Super Speciality Desk', linkedHospitalId: 'LOC-004', phone: '+91-135-7193000' },
+                'admin': { role: 'ADMIN', username: 'admin', displayName: 'System Administrator', phone: '+91-135-2651000' }
+            };
+
+            const u = accounts[accountKey] || accounts.admin;
+            Auth.setSession('showcase-' + accountKey, u);
+            Auth.redirectForRole(u.role);
+        }
+        window.quickLogin = quickLogin;
     </script>
 </body>
 </html>

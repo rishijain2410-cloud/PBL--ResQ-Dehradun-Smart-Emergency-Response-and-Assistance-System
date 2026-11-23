@@ -989,9 +989,10 @@
         if (isCloud && isApiCall) {
             try {
                 const mockRes = handleMockApi(urlStr, method, headers, body);
+                const isFail = mockRes && (mockRes.success === false || mockRes.status === "PRECONDITION_FAILED");
                 return new Response(JSON.stringify(mockRes), {
-                    status: 200,
-                    statusText: "OK",
+                    status: isFail ? 400 : 200,
+                    statusText: isFail ? "Bad Request" : "OK",
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Powered-By': 'JEEVAN-MARG-SHOWCASE-CLOUD'

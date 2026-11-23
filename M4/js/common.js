@@ -383,23 +383,23 @@ const Common = {
 
         const switcher = document.createElement('div');
         switcher.id = 'portal-quick-switcher';
-        switcher.className = 'portal-quick-switcher hidden lg:inline-flex';
+        switcher.className = 'portal-quick-switcher inline-flex flex-wrap items-center gap-1 my-1';
         switcher.innerHTML = `
-            <a href="/patient.html" class="portal-switch-pill ${activeModule === 'patient' ? 'active' : ''}" title="Citizen Emergency SOS">
+            <a href="/patient.html" onclick="if(window.Auth)Auth.setSession('showcase-patient',{role:'PATIENT',username:'patient_demo',displayName:'Aryan (Patient)',phone:'+91-9876543210'})" class="portal-switch-pill ${activeModule === 'patient' ? 'active' : ''}" title="Citizen Emergency SOS">
                 <i class="fa-solid fa-person-falling-burst"></i>
                 <span>Citizen SOS</span>
             </a>
-            <a href="/driver.html" class="portal-switch-pill ${activeModule === 'driver' ? 'active' : ''}" title="Ambulance Cockpit">
+            <a href="/driver.html" onclick="if(window.Auth)Auth.setSession('showcase-driver',{role:'DRIVER',username:'driver_amb01',displayName:'Ramesh Singh (AMB-01)',linkedAmbulanceId:'AMB-01',phone:'+91-9897011001'})" class="portal-switch-pill ${activeModule === 'driver' ? 'active' : ''}" title="Ambulance Cockpit">
                 <i class="fa-solid fa-truck-medical"></i>
                 <span>Driver</span>
             </a>
-            <a href="/hospital.html" class="portal-switch-pill ${activeModule === 'hospital' ? 'active' : ''}" title="Hospital ER & Beds">
+            <a href="/hospital.html" onclick="if(window.Auth)Auth.setSession('showcase-hospital',{role:'HOSPITAL',username:'hosp_max',displayName:'Max Super Speciality Desk',linkedHospitalId:'LOC-004',phone:'+91-135-7193000'})" class="portal-switch-pill ${activeModule === 'hospital' ? 'active' : ''}" title="Hospital ER & Beds">
                 <i class="fa-solid fa-hospital"></i>
                 <span>Hospital</span>
             </a>
-            <a href="/index.html" class="portal-switch-pill ${activeModule === 'admin' ? 'active' : ''}" title="System Admin Console">
+            <a href="/index.html" onclick="if(window.Auth)Auth.setSession('showcase-admin',{role:'ADMIN',username:'admin',displayName:'System Administrator',phone:'+91-135-2651000'})" class="portal-switch-pill ${activeModule === 'admin' ? 'active' : ''}" title="System Admin Console">
                 <i class="fa-solid fa-shield-halved"></i>
-                <span>Admin</span>
+                <span>Control Room</span>
             </a>
         `;
 

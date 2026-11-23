@@ -75,6 +75,12 @@ function initHospitalMap() {
     const hospIcon = Common.createPinIcon('hospital', 'fa-hospital');
     hospitalMarker = L.marker([defaultLat, defaultLng], { icon: hospIcon }).addTo(hospitalMap)
         .bindPopup(`<b>${Common.escapeHtml(hospitalProfile?.name || 'Hospital Facility')}</b><br>Emergency Care & Trauma Center`);
+
+    setTimeout(() => {
+        if (hospitalMap) {
+            hospitalMap.invalidateSize();
+        }
+    }, 250);
 }
 
 // -----------------------------------------------------------------------------

@@ -50,11 +50,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 // User Profile
 // -----------------------------------------------------------------------------
 function renderUserProfile(user) {
+    user = user || { displayName: 'Aryan (Patient)', phone: '+91 98765 43210' };
     const nameEl = document.getElementById('patient-name-display');
     const phoneEl = document.getElementById('patient-phone-display');
     const inputName = document.getElementById('sos-patient-name');
     const inputPhone = document.getElementById('sos-patient-phone');
-    if (nameEl) nameEl.textContent = user.displayName || user.username;
+    if (nameEl) nameEl.textContent = user.displayName || user.username || 'Aryan (Patient)';
     if (phoneEl) phoneEl.textContent = user.phone || 'Emergency Contact Ready';
     if (inputName && (user.displayName || user.username)) {
         inputName.value = user.displayName || user.username;
@@ -199,9 +200,10 @@ function initPatientMap() {
     }).setView([30.3244, 78.0418], 14);
 
     // High-detail OpenStreetMap tile layer (renders all roads, bypasses, alleyways, landmarks)
-    const osmRoads = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const osmRoads = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        maxNativeZoom: 19
+        maxNativeZoom: 19,
+        attribution: '&copy; OpenStreetMap'
     }).addTo(patientMap);
 
     // High-contrast clean street layer for navigation
@@ -217,6 +219,13 @@ function initPatientMap() {
     }, null, { position: 'topright' }).addTo(patientMap);
 
     updatePatientMarker(currentCoords.lat, currentCoords.lng, 'Patient Location');
+
+    // Force Leaflet to re-calculate container dimensions so all tiles display crisply
+    setTimeout(() => {
+        if (patientMap) {
+            patientMap.invalidateSize();
+        }
+    }, 250);
 
     // Allow user to click anywhere on map to specify pickup location
     patientMap.on('click', (e) => {
@@ -671,9 +680,6 @@ function stopEmergencyTracking() {
         trackingPoller.stop();
         trackingPoller = null;
     }
-    const banner = document.getElementById('active-tracking-section');
-    if (banner) banner.classList.add('hidden');
-}
     const banner = document.getElementById('active-tracking-section');
     if (banner) banner.classList.add('hidden');
 }

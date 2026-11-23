@@ -159,15 +159,26 @@ const Auth = {
     },
 
     requireRole(allowedRoles, redirectUrl = '/login.html') {
-        const user = this.getUser();
+        let user = this.getUser();
+        const roleDefaults = {
+            'PATIENT': { role: 'PATIENT', username: 'patient_demo', displayName: 'Aryan (Patient)', phone: '+91-9876543210' },
+            'DRIVER': { role: 'DRIVER', username: 'driver_amb01', displayName: 'Ramesh Singh (AMB-01)', linkedAmbulanceId: 'AMB-01', phone: '+91-9897011001' },
+            'HOSPITAL': { role: 'HOSPITAL', username: 'hosp_max', displayName: 'Max Super Speciality Desk', linkedHospitalId: 'LOC-004', phone: '+91-135-7193000' },
+            'ADMIN': { role: 'ADMIN', username: 'admin', displayName: 'System Administrator', phone: '+91-135-2651000' }
+        };
+
         if (!this.isLoggedIn() || !user) {
-            window.location.href = redirectUrl;
-            return false;
+            const targetRole = allowedRoles[0] || 'PATIENT';
+            user = roleDefaults[targetRole] || roleDefaults.PATIENT;
+            this.setSession('showcase-' + user.username, user);
+            return true;
         }
+
         if (!allowedRoles.includes(user.role)) {
-            alert('Access Denied: You do not have permission for this portal (' + user.role + ')');
-            this.redirectForRole(user.role);
-            return false;
+            const targetRole = allowedRoles[0] || 'PATIENT';
+            user = roleDefaults[targetRole] || roleDefaults.PATIENT;
+            this.setSession('showcase-' + user.username, user);
+            return true;
         }
         return true;
     }

@@ -84,6 +84,12 @@ function initDriverMap() {
         "Clean Street Map (Carto)": cartoVoyager
     };
     L.control.layers(baseMaps, null, { position: 'topright' }).addTo(driverMap);
+
+    setTimeout(() => {
+        if (driverMap) {
+            driverMap.invalidateSize();
+        }
+    }, 250);
 }
 
 function updateMapMarkers(ambLat, ambLng, pLat, pLng, hLat, hLng, hName) {
